@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "esModuleInterop": true,
     "strict": true,
     "outDir": "build",
