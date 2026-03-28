@@ -17,10 +17,11 @@ const __dirname_resolved = typeof import.meta.dirname === "string"
 export interface ServerOptions {
   jwtSecret?: string;
   playerDB?: IPlayerPersistence;
+  dbPath?: string;  // SQLite file path (creates SqlitePlayerDB)
   presence?: Presence;
   driver?: MatchMakerDriver;
   gameData?: GameData;
-  gameDir?: string;  // alternative: load from directory
+  gameDir?: string;
 }
 
 export interface MMOServer {
@@ -34,7 +35,7 @@ export interface MMOServer {
 
 export function createMMOServer(opts: ServerOptions = {}): MMOServer {
   const jwtSecret = opts.jwtSecret ?? "mmo-dev-secret";
-  const playerDB = opts.playerDB ?? new InMemoryPlayerDB();
+  const playerDB: IPlayerPersistence = opts.playerDB ?? new InMemoryPlayerDB();
   const presence = opts.presence ?? new LocalPresence();
   const driver = opts.driver ?? new LocalDriver();
   const authAdapter = new KaedevnAuthAdapter(jwtSecret);

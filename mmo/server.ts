@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createMMOServer } from "./src/createServer.ts";
+import { SqlitePlayerDB } from "./src/persistence/SqlitePlayerDB.ts";
 
 const WS_PORT = Number(process.env.PORT) || 3001;
 const HTTP_PORT = Number(process.env.HTTP_PORT) || 3000;
@@ -18,9 +19,13 @@ const __dirname = typeof import.meta.dirname === "string"
   ? import.meta.dirname
   : path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.join(__dirname, "client");
+const DB_PATH = path.join(__dirname, "mmo-data.db");
+
+const playerDB = new SqlitePlayerDB(DB_PATH);
 
 const mmo = createMMOServer({
   jwtSecret: process.env.JWT_SECRET || "mmo-dev-secret",
+  playerDB,
 });
 
 // Static file server for browser client
