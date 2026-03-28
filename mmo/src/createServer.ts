@@ -1,5 +1,7 @@
-import { Server, LocalPresence, LocalDriver, matchMaker } from "@colyseus/core";
-import type { Presence, MatchMakerDriver } from "@colyseus/core";
+import path from "path";
+import { fileURLToPath } from "url";
+import { Server, LocalPresence, LocalDriver, matchMaker } from "colyseus";
+import type { Presence, MatchMakerDriver } from "colyseus";
 import { WorldRoom } from "./rooms/WorldRoom.ts";
 import { ChatRoom } from "./rooms/ChatRoom.ts";
 import { BattleRoom } from "./rooms/BattleRoom.ts";
@@ -7,6 +9,10 @@ import { TradeRoom } from "./rooms/TradeRoom.ts";
 import { KaedevnAuthAdapter } from "./auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence, InMemoryPlayerDB } from "./persistence/PlayerPersistence.ts";
 import { type GameData, loadGameData } from "./GameData.ts";
+
+const __dirname_resolved = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
 
 export interface ServerOptions {
   jwtSecret?: string;
@@ -40,9 +46,7 @@ export function createMMOServer(opts: ServerOptions = {}): MMOServer {
   } else if (opts.gameDir) {
     gameData = loadGameData(opts.gameDir);
   } else {
-    // Fallback: load from default location
-    const path = require("path");
-    const defaultDir = path.join(__dirname, "..", "games", "fantasy-rpg");
+    const defaultDir = path.join(__dirname_resolved, "..", "games", "fantasy-rpg");
     gameData = loadGameData(defaultDir);
   }
 

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Text MMO</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <span class="player-info" id="hdr-player">---</span>
+      <span class="hp" id="hdr-hp"></span>
+      <span class="zone-name" id="hdr-zone">接続中...</span>
+    </div>
+    <div id="main">
+      <div id="left-panel"></div>
+      <div id="right-panel"></div>
+    </div>
+    <div id="footer">
+      <div class="choices" id="choices"></div>
+      <input type="text" id="text-input" placeholder="メッセージを入力...">
+    </div>
+  </div>
+  <script src="https://unpkg.com/colyseus.js@0.15/dist/colyseus.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

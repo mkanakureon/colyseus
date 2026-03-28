@@ -1,0 +1,186 @@
+:root {
+  --bg: #0d1117;
+  --bg-panel: #161b22;
+  --bg-footer: #1c2128;
+  --text: #c9d1d9;
+  --text-dim: #6e7681;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --danger: #f85149;
+  --warning: #d29922;
+  --border: #30363d;
+  --npc-name: #d2a8ff;
+  --player-name: #79c0ff;
+  --emotion: #ffa657;
+  --font: "SF Mono", "Cascadia Code", "Consolas", "MS Gothic", monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+#header .player-info { color: var(--player-name); }
+#header .zone-name { color: var(--accent); }
+#header .hp { color: var(--accent2); }
+#header .hp.low { color: var(--danger); }
+
+/* ── Main panels ── */
+#main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#left-panel, #right-panel {
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+#left-panel {
+  flex: 6;
+  border-right: 1px solid var(--border);
+}
+
+#right-panel {
+  flex: 4;
+  background: var(--bg-panel);
+  font-size: 13px;
+}
+
+#left-panel.full { flex: 1; border-right: none; }
+#right-panel.hidden { display: none; }
+
+/* ── Footer ── */
+#footer {
+  background: var(--bg-footer);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px;
+  flex-shrink: 0;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choice-btn {
+  background: var(--bg-panel);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+  min-width: 44px;
+  min-height: 36px;
+  text-align: left;
+}
+.choice-btn:hover { border-color: var(--accent); background: #1c2128; }
+.choice-btn:active { background: #252d38; }
+
+#text-input {
+  display: none;
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 14px;
+  border-radius: 4px;
+  outline: none;
+}
+#text-input:focus { border-color: var(--accent); }
+#text-input.visible { display: block; }
+
+/* ── Content styles ── */
+.section-title {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin: 12px 0 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
+}
+.section-title:first-child { margin-top: 0; }
+
+.npc-name { color: var(--npc-name); font-weight: bold; }
+.player-name { color: var(--player-name); }
+.emotion-tag { color: var(--emotion); font-size: 12px; }
+.system-msg { color: var(--text-dim); font-style: italic; }
+.danger { color: var(--danger); }
+.success { color: var(--accent2); }
+.warning { color: var(--warning); }
+
+.dialogue-text {
+  margin: 4px 0 8px 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.hp-bar { font-size: 12px; white-space: pre; }
+.hp-bar .fill { color: var(--accent2); }
+.hp-bar .fill.mid { color: var(--warning); }
+.hp-bar .fill.low { color: var(--danger); }
+.hp-bar .empty { color: var(--border); }
+
+.stat-row { display: flex; justify-content: space-between; padding: 1px 0; }
+.stat-label { color: var(--text-dim); }
+.stat-value { color: var(--text); }
+.stat-bonus { color: var(--accent2); font-size: 12px; }
+
+.log-entry { margin: 2px 0; }
+.log-turn { color: var(--text-dim); margin-top: 8px; font-size: 12px; }
+
+.center-text { text-align: center; padding: 40px 20px; }
+
+.item-row {
+  padding: 4px 0;
+  display: flex;
+  justify-content: space-between;
+}
+.item-price { color: var(--warning); }
+.item-effect { color: var(--text-dim); font-size: 12px; }
+
+.quest-active { color: var(--accent); }
+.quest-done { color: var(--accent2); }
+.quest-progress { color: var(--text-dim); margin-left: 12px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  html, body { font-size: 13px; }
+  #left-panel { flex: 55; }
+  #right-panel { flex: 45; }
+  .choice-btn { padding: 8px 12px; min-height: 44px; font-size: 14px; }
+  #header { font-size: 12px; padding: 4px 10px; }
+  #left-panel, #right-panel { padding: 8px 10px; }
+}
