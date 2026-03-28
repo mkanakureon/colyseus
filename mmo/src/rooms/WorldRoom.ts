@@ -151,6 +151,24 @@ export class WorldRoom extends Room<WorldState> {
     this.state.players.set(client.sessionId, player);
     this.userToSession.set(auth.userId, client.sessionId);
 
+    // Send zone info (NPCs, directions, description)
+    const zoneDef = this.gameData?.zones?.find((z: any) => z.id === this.state.zoneId);
+    client.send("zone_info", {
+      zoneId: this.state.zoneId,
+      zoneName: this.state.zoneName || zoneDef?.name || "",
+      description: zoneDef?.description || "",
+      isSafe: zoneDef?.isSafe ?? true,
+      adjacentZones: this.adjacentZones.map(a => {
+        const target = this.gameData?.zones?.find((z: any) => z.id === a.zoneId);
+        return { direction: a.direction, zoneId: a.zoneId, zoneName: target?.name || a.zoneId };
+      }),
+      npcs: Array.from(this.state.npcs.values()).map(n => ({
+        id: n.id, name: n.name,
+        shop: this.gameData?.shops?.[n.id] ? n.id : null,
+        quests: Object.values(this.gameData?.quests || {}).filter((q: any) => q.giver === n.id).map((q: any) => q.id),
+      })),
+    });
+
     // Tell client if character creation is needed
     if (!playerData.isCreated) {
       client.send("need_character_creation", {});

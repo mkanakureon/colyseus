@@ -194,13 +194,24 @@ function rDialogue() {
   if (dialogueData.source) right += `<div class="text-dim">${dialogueData.source}</div>`;
   h(rightPanel, right);
 
+  const ch = [];
+  let cn = 1;
   if (node.choices?.length) {
-    setChoices(node.choices.map((c,i) => [i+1, c.label, `choice:${c.next}`]));
+    node.choices.forEach((c,i) => ch.push([cn++, c.label, `choice:${c.next}`]));
   } else if (dialogueIdx < nodes.length - 1) {
-    setChoices([[1, "次へ", "dnext"], [0, "戻る", "back"]]);
-  } else {
-    setChoices([[0, "戻る", "back"]]);
+    ch.push([cn++, "次へ", "dnext"]);
   }
+
+  // Last node: show shop/quest buttons if NPC has them
+  if (dialogueIdx >= nodes.length - 1 || !node.choices?.length) {
+    const npcId = dialogueData.npcId;
+    const npcInfo = zoneInfo?.npcs?.find(n => n.id === npcId);
+    if (npcInfo?.shop) ch.push([cn++, "ショップ", `shop:${npcInfo.shop}`]);
+    if (npcInfo?.quests?.length) ch.push([cn++, "クエスト", `quest_list:${npcId}`]);
+  }
+
+  ch.push([0, "戻る", "back"]);
+  setChoices(ch);
 }
 
 function rBattle() {
@@ -337,6 +348,9 @@ function act(a) {
   if (a === "explore") { worldRoom.send("explore",{}); return; }
   if (a.startsWith("move:")) { worldRoom.send("move", { direction: a.split(":")[1] }); return; }
   if (a.startsWith("npc:")) { worldRoom.send("interact", { targetId: a.split(":")[1] }); return; }
+  if (a.startsWith("shop:")) { player._shopNpcId = a.split(":")[1]; worldRoom.send("shop_list", { npcId: a.split(":")[1] }); return; }
+  if (a.startsWith("quest_list:")) { worldRoom.send("quest_list", { npcId: a.split(":")[1] }); return; }
+  if (a.startsWith("quest_accept:")) { worldRoom.send("quest_accept", { questId: a.split(":")[1] }); return; }
   if (a.startsWith("choice:")) {
     const next = a.split(":")[1];
     if (next === "end") { screen = "world"; render(); return; }
@@ -381,12 +395,6 @@ async function connect() {
     });
 
     player.zoneName = "はじまりの村";
-
-    // Build zoneInfo from server state once synced
-    worldRoom.onStateChange.once(() => {
-      buildZoneInfo();
-    });
-
     setupHandlers();
 
   } catch (e) {
@@ -397,6 +405,18 @@ async function connect() {
 
 // ALL message handlers registered ONCE
 function setupHandlers() {
+  // Zone info from server (replaces hardcoded buildZoneInfo)
+  worldRoom.onMessage("zone_info", d => {
+    zoneInfo = {
+      description: d.description,
+      isSafe: d.isSafe,
+      adjacentZones: d.adjacentZones,
+      npcs: d.npcs,
+    };
+    player.zoneName = d.zoneName || d.zoneId;
+    if (screen === "world" || screen === "login") { screen = "world"; render(); }
+  });
+
   worldRoom.onMessage("need_character_creation", () => { screen = "create"; render(); });
 
   worldRoom.onMessage("welcome", d => {
@@ -405,28 +425,24 @@ function setupHandlers() {
   });
 
   worldRoom.onMessage("character_created", d => {
-    player = { ...player, name: d.name, level: 1, hp: d.hp, maxHp: d.maxHp, mp: d.mp, maxMp: d.maxMp, zoneName: "はじまりの村" };
+    player = { ...player, name: d.name, level: 1, hp: d.hp, maxHp: d.maxHp, mp: d.mp, maxMp: d.maxMp };
     sysMsg(`${d.name}が誕生した!`);
     screen = "world"; render();
   });
 
   worldRoom.onMessage("zone_change", async d => {
     const newZoneId = d.zoneId;
-    sysMsg(`${newZoneId} に移動`);
+    sysMsg(`${d.zoneName || newZoneId} に移動`);
 
     // Leave current room and join new zone
     try {
       await worldRoom.leave();
-      worldRoom = await client.joinOrCreate("world", {
+      worldRoom = await client.create("world", {
         token: player._token,
         zoneId: newZoneId,
         zoneName: d.zoneName || newZoneId,
       });
-      player.zoneName = d.zoneName || newZoneId;
-      setupHandlers(); // re-register handlers on new room
-      worldRoom.onStateChange.once(() => { buildZoneInfo(); });
-      // Wait for state sync
-      setTimeout(() => { buildZoneInfo(); screen = "world"; render(); }, 300);
+      setupHandlers(); // re-register on new room (zone_info will update zoneInfo)
     } catch (e) {
       sysMsg(`移動失敗: ${e.message}`);
       screen = "world"; render();
@@ -456,7 +472,23 @@ function setupHandlers() {
 
   worldRoom.onMessage("item_used", d => { sysMsg(d.log); player.hp = d.hp; player.mp = d.mp; render(); });
 
-  worldRoom.onMessage("quest_accepted", d => { sysMsg(`クエスト受注: ${d.questId}`); });
+  worldRoom.onMessage("quest_list", d => {
+    // Show quest selection
+    hideRight();
+    let left = `<div class="section-title">クエスト (${d.npcId})</div>`;
+    const ch = [];
+    if (d.quests.length === 0) { left += `<div class="system-msg">クエストなし</div>`; }
+    else d.quests.forEach((q, i) => {
+      left += `<div style="margin:8px 0"><strong>[${i+1}] ${q.name}</strong></div><div class="text-dim" style="margin-left:12px">${q.description}</div>`;
+      ch.push([i+1, q.name, `quest_accept:${q.id}`]);
+    });
+    h(leftPanel, left);
+    ch.push([0, "戻る", "back"]);
+    setChoices(ch);
+    screen = "quest_select";
+  });
+
+  worldRoom.onMessage("quest_accepted", d => { sysMsg(`クエスト受注: ${d.questId}`); screen = "world"; render(); });
 
   worldRoom.onMessage("player_status", d => { statusCache = d; player = { ...player, ...d }; if (screen==="status") render(); });
 
@@ -466,51 +498,12 @@ function setupHandlers() {
 
   worldRoom.onMessage("error", d => { sysMsg(`${d.message||d.code}`); if (screen==="world") render(); });
 
-  // Chat room
-  client.joinOrCreate("chat", { token: "browser-chat", name: player.name || "anonymous", zoneId: "zone-001-village" })
-    .then(room => { chatRoom = room; chatRoom.onMessage("chat_message", m => { chatLog.push(m); if (screen==="chat") rChat(); }); })
-    .catch(() => {});
-}
-
-function buildZoneInfo() {
-  // Build from hardcoded zone data (until server sends zone info)
-  const ZONES = {
-    "zone-001-village": {
-      description: "穏やかな風が吹く小さな村。石畳の広場に井戸がある。",
-      isSafe: true,
-      adjacentZones: [{ direction: "north", zoneId: "zone-004-capital", zoneName: "王都セレス" }],
-    },
-    "zone-004-capital": {
-      description: "大陸最大の都市。石造りの城壁に囲まれた街。",
-      isSafe: true,
-      adjacentZones: [
-        { direction: "north", zoneId: "zone-007-port", zoneName: "港町カイル" },
-        { direction: "south", zoneId: "zone-001-village", zoneName: "はじまりの村" },
-        { direction: "east", zoneId: "zone-003-market", zoneName: "交易広場" },
-        { direction: "west", zoneId: "zone-002-forest", zoneName: "霧の森" },
-      ],
-    },
-    "zone-002-forest": {
-      description: "薄暗い森の中。木々の隙間から霧が漂う。遠くで獣の唸り声が聞こえる。",
-      isSafe: false,
-      adjacentZones: [
-        { direction: "south", zoneId: "zone-005-ruins", zoneName: "古代遺跡" },
-        { direction: "east", zoneId: "zone-004-capital", zoneName: "王都セレス" },
-      ],
-    },
-  };
-
-  const zoneId = worldRoom?.state?.zoneId || "zone-001-village";
-  const base = ZONES[zoneId] || { description: "", isSafe: true, adjacentZones: [] };
-
-  // Get NPCs from server state
-  const npcs = [];
-  if (worldRoom?.state?.npcs) {
-    worldRoom.state.npcs.forEach(n => { npcs.push({ id: n.id, name: n.name }); });
+  // Chat room (only join once)
+  if (!chatRoom) {
+    client.joinOrCreate("chat", { token: player._token || "browser-chat", name: player.name || "anonymous", zoneId: "zone-001-village" })
+      .then(room => { chatRoom = room; chatRoom.onMessage("chat_message", m => { chatLog.push(m); if (screen==="chat") rChat(); }); })
+      .catch(() => {});
   }
-
-  zoneInfo = { ...base, npcs };
-  if (screen === "world") render();
 }
 
 async function startBattle(enemy) {
