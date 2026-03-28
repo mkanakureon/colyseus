@@ -261,44 +261,228 @@ function buildGraph() {
         "target-arrow-shape": "triangle", "target-arrow-color": "#3fb95080", "arrow-scale": 0.8,
         "label": "data(label)", "font-size": 8, "color": "#3fb950", "text-outline-color": "#0d1117", "text-outline-width": 1,
       }},
+      // Highlight style
+      { selector: ".highlighted", style: { "overlay-color": "#58a6ff", "overlay-padding": 4, "overlay-opacity": 0.15 } },
     ],
     minZoom: 0.3, maxZoom: 3,
     wheelSensitivity: 0.3,
   });
 
-  // Click handler
+  // Click handler — detailed dev info
   cy.on("tap", "node", evt => {
     const d = evt.target.data();
     let html = "";
 
     if (d.type === "zone") {
-      html = `<h2>${d.label}</h2>`;
+      html = `<div class="dim">ZONE</div><h2>${d.label}</h2>`;
+      html += `<div class="dim" style="margin-bottom:8px">${d.id}</div>`;
       html += `<div>${d.desc}</div>`;
-      html += `<div class="${d.safe ? 'green' : 'red'}" style="margin-top:4px">${d.safe ? "Safe Zone" : "Danger Zone"}</div>`;
-      if (d.enemies) html += `<div class="dim" style="margin-top:4px">Enemies: ${d.enemies}</div>`;
-      html += `<div class="dim">NPCs: ${d.npcCount}</div>`;
+      html += `<div class="${d.safe ? 'green' : 'red'}" style="margin:8px 0">${d.safe ? "Safe Zone" : "Danger Zone"}</div>`;
+
+      // NPCs in this zone
+      const zone = gameData.zones.find(z => z.id === d.id);
+      if (zone?.npcs?.length) {
+        html += `<h2>NPCs (${zone.npcs.length})</h2>`;
+        zone.npcs.forEach(n => {
+          const roles = [];
+          if (n.shop) roles.push('<span class="gold">Shop</span>');
+          if ((n.quests||[]).length) roles.push(`<span class="green">Quest(${n.quests.length})</span>`);
+          html += `<div style="padding:2px 0">${n.name} ${roles.join(" ")}</div>`;
+        });
+      }
+
+      // Enemies
+      if (d.enemies) {
+        html += `<h2>Enemies</h2>`;
+        const enc = gameData.encounters[d.id];
+        if (enc) enc.enemies.forEach(e => {
+          const enemy = gameData.enemies[e.enemyId];
+          if (enemy) html += `<div style="padding:2px 0">${enemy.name} HP:${enemy.hp} ATK:${enemy.atk} <span class="dim">(weight:${e.weight})</span></div>`;
+        });
+      }
+
+      // Adjacent
+      if (zone?.adjacentZones?.length) {
+        html += `<h2>Connections</h2>`;
+        const dirNames = { north:"北↑", south:"南↓", east:"東→", west:"西←" };
+        zone.adjacentZones.forEach(a => {
+          const t = gameData.zones.find(z => z.id === a.zoneId);
+          html += `<div>${dirNames[a.direction]||a.direction} ${t?.name||a.zoneId}</div>`;
+        });
+      }
 
     } else if (d.type === "npc") {
-      html = `<h2 class="purple">${d.label}</h2>`;
-      html += `<div class="dim">${d.zone}</div>`;
-      if (d.roles) html += `<div style="margin-top:4px">${d.roles}</div>`;
-      if (d.shop) html += `<div class="gold" style="margin-top:4px">Shop: ${d.shop}</div>`;
-      if (d.questIds.length) html += `<div class="green" style="margin-top:4px">Quests: ${d.questIds.join(", ")}</div>`;
+      html = `<div class="dim">NPC</div><h2 class="purple">${d.label}</h2>`;
+      html += `<div class="dim" style="margin-bottom:4px">${d.id} @ ${d.zone}</div>`;
+      if (d.roles) html += `<div style="margin-bottom:8px">${d.roles}</div>`;
+
+      // Conversation pool
+      const pool = gameData.npcConversations?.[d.id];
+      if (pool) {
+        const daily = pool.daily?.length || 0;
+        const ctx = pool.contextual?.length || 0;
+        const sp = pool.special?.length || 0;
+        html += `<h2>Conversation Pool</h2>`;
+        html += `<div>Daily: ${daily} / Contextual: ${ctx} / Special: ${sp}</div>`;
+
+        // Contextual conditions
+        if (pool.contextual?.length) {
+          html += `<h2>Contextual Conditions</h2>`;
+          pool.contextual.forEach(c => {
+            html += `<div style="padding:3px 0;border-bottom:1px solid #21262d">`;
+            html += `<div class="blue">${c.label}</div>`;
+            if (c.condition) {
+              const cond = c.condition;
+              if (cond.relationMin != null) html += `<div class="dim">  関係値 >= ${cond.relationMin}</div>`;
+              if (cond.relationMax != null) html += `<div class="dim">  関係値 <= ${cond.relationMax}</div>`;
+              if (cond.questFlags?.length) html += `<div class="dim">  完了クエスト: ${cond.questFlags.join(", ")}</div>`;
+              if (cond.questActive?.length) html += `<div class="dim">  進行中クエスト: ${cond.questActive.join(", ")}</div>`;
+              if (cond.once) html += `<div class="dim">  一度のみ</div>`;
+            }
+            html += `</div>`;
+          });
+        }
+
+        // Special
+        if (pool.special?.length) {
+          html += `<h2>Special Conversations</h2>`;
+          pool.special.forEach(s => {
+            html += `<div>${s.label}`;
+            if (s.condition?.once) html += ` <span class="dim">(once)</span>`;
+            html += `</div>`;
+          });
+        }
+      } else {
+        html += `<div class="dim" style="margin:8px 0">Legacy dialogue (no pool)</div>`;
+      }
+
+      // Shop items
+      if (d.hasShop && gameData.shops[d.id]) {
+        const shop = gameData.shops[d.id];
+        html += `<h2>Shop Items</h2>`;
+        shop.items.forEach(itemId => {
+          const item = gameData.items[itemId] || gameData.equipment[itemId];
+          if (item) {
+            let info = `${item.buyPrice}G`;
+            if (item.effect) info += ` (${item.effect.type}: +${item.effect.value})`;
+            if (item.atk) info += ` ATK+${item.atk}`;
+            if (item.def) info += ` DEF+${item.def}`;
+            html += `<div style="padding:2px 0"><span class="gold">${item.name}</span> <span class="dim">${info}</span></div>`;
+          }
+        });
+      }
+
+      // Quest flow: NPC → quests with full details
+      if (d.questIds?.length) {
+        html += `<h2>Quest Flow</h2>`;
+        d.questIds.forEach(qId => {
+          const quest = gameData.quests[qId];
+          if (!quest) return;
+
+          // Is this NPC the giver or just a board?
+          const isGiver = quest.giver === d.id;
+
+          html += `<div style="padding:6px 0;border-bottom:1px solid #21262d">`;
+          html += `<div class="blue">${qId}: ${quest.name}</div>`;
+          html += `<div class="dim">${quest.description}</div>`;
+          html += `<div style="margin:4px 0">`;
+          html += isGiver
+            ? `<span class="green">依頼者（このNPC）</span>`
+            : `<span class="dim">掲示板表示（依頼者: ${quest.giver}）</span>`;
+          html += `</div>`;
+
+          // Objectives with location
+          html += `<div style="margin:4px 0">`;
+          quest.objectives.forEach(obj => {
+            let loc = "";
+            if (obj.type === "defeat") {
+              const zones = Object.entries(gameData.encounters)
+                .filter(([,enc]) => enc.enemies?.some(e => e.enemyId === obj.targetId))
+                .map(([zId]) => gameData.zones.find(z => z.id === zId)?.name || zId);
+              loc = zones.length ? zones.join(", ") : "?";
+            }
+            if (obj.type === "visit") {
+              const z = gameData.zones.find(z => z.id === obj.targetId);
+              loc = z?.name || obj.targetId;
+            }
+            const typeIcon = obj.type === "defeat" ? "⚔" : obj.type === "collect" ? "📦" : "📍";
+            html += `<div>${typeIcon} ${obj.targetName} x${obj.required}`;
+            if (loc) html += ` <span class="dim">@ ${loc}</span>`;
+            html += `</div>`;
+          });
+          html += `</div>`;
+
+          // Rewards
+          const ri = quest.rewards.items?.map(i => `${i.name}x${i.quantity}`).join(", ") || "";
+          html += `<div class="green">${quest.rewards.exp}EXP ${quest.rewards.gold}G${ri ? " " + ri : ""}</div>`;
+
+          // Player flow
+          html += `<div class="dim" style="margin-top:4px;font-size:11px">`;
+          html += `Flow: 話しかける → クエスト → 受注 → `;
+          quest.objectives.forEach(obj => {
+            if (obj.type === "defeat") html += `${obj.targetName}を${obj.required}体倒す → `;
+            if (obj.type === "collect") html += `${obj.targetName}を${obj.required}個集める → `;
+            if (obj.type === "visit") html += `${obj.targetName}に行く → `;
+          });
+          html += isGiver ? `このNPCに報告 → 報酬` : `${quest.giver}に報告 → 報酬`;
+          html += `</div>`;
+
+          html += `</div>`;
+        });
+      }
 
     } else if (d.type === "quest") {
-      html = `<h2 class="blue">${d.label}</h2>`;
-      html += `<div class="dim">${d.desc}</div>`;
-      html += `<div style="margin-top:4px">Giver: ${d.giver}</div>`;
+      html = `<div class="dim">QUEST</div><h2 class="blue">${d.label}</h2>`;
+      html += `<div class="dim" style="margin-bottom:4px">${d.id}</div>`;
+      html += `<div>${d.desc}</div>`;
+      html += `<div style="margin:8px 0">依頼者: ${d.giver}</div>`;
       html += `<div style="white-space:pre">${d.objectives}</div>`;
-      html += `<div class="green" style="margin-top:4px">${d.rewards}</div>`;
+      html += `<div class="green" style="margin-top:8px">${d.rewards}</div>`;
+
+      // Where can you get this quest?
+      const availableAt = [];
+      for (const zone of gameData.zones) {
+        for (const npc of zone.npcs) {
+          if ((npc.quests || []).includes(d.id)) {
+            availableAt.push(`${npc.name} (${zone.name})`);
+          }
+        }
+      }
+      if (availableAt.length) {
+        html += `<h2>受注可能NPC</h2>`;
+        availableAt.forEach(a => html += `<div>${a}</div>`);
+      }
 
     } else if (d.type === "boss") {
-      html = `<h2 class="red">${d.label}</h2>`;
-      html += `<div>HP:${d.hp} EXP:${d.exp} Gold:${d.gold}</div>`;
-      if (d.special) html += `<div class="gold" style="margin-top:4px">${d.special}</div>`;
+      html = `<div class="dim">BOSS</div><h2 class="red">${d.label}</h2>`;
+      html += `<div style="margin:8px 0">HP:${d.hp} EXP:${d.exp} Gold:${d.gold}</div>`;
+      if (d.special) html += `<div class="gold">Special: ${d.special}</div>`;
+      html += `<div class="dim" style="margin-top:8px">逃走不可 / パーティ推奨</div>`;
+
+      // Drops
+      const boss = Object.values(gameData.bosses).find(b => `boss-${b.id}` === d.id);
+      if (boss?.drops?.length) {
+        html += `<h2>Drops</h2>`;
+        boss.drops.forEach(dr => {
+          html += `<div>${dr.itemId} <span class="dim">(${dr.chance * 100}%)</span></div>`;
+        });
+      }
     }
 
     document.getElementById("detail").innerHTML = html;
+
+    // Highlight connected edges
+    cy.elements().removeClass("highlighted");
+    evt.target.addClass("highlighted");
+    evt.target.connectedEdges().addClass("highlighted");
+    evt.target.connectedEdges().connectedNodes().addClass("highlighted");
+  });
+
+  cy.on("tap", evt => {
+    if (evt.target === cy) {
+      cy.elements().removeClass("highlighted");
+      document.getElementById("detail").innerHTML = '<span class="dim">ノードをクリック</span>';
+    }
   });
 
   // Fit to view
