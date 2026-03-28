@@ -19,6 +19,7 @@ export interface PlayerData {
   level: number;
   exp: number;
   gold: number;
+  equipment: { weapon: string | null; armor: string | null; accessory: string | null };
   inventory: InventoryItem[];
   questProgress: Record<string, QuestState>;
   lastLogin: number;
@@ -65,6 +66,7 @@ export function defaultPlayerData(userId: string, name: string): PlayerData {
     level: 1,
     exp: 0,
     gold: 100,
+    equipment: { weapon: null, armor: null, accessory: null },
     inventory: [
       { itemId: "potion-001", name: "回復薬", quantity: 3, type: "consumable" },
     ],

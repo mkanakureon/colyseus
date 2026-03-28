@@ -1,0 +1,24 @@
+export type EquipSlot = "weapon" | "armor" | "accessory";
+
+export interface EquipmentDef {
+  id: string;
+  name: string;
+  slot: EquipSlot;
+  atk: number;
+  def: number;
+  mag: number;
+  spd: number;
+  buyPrice: number;
+  sellPrice: number;
+}
+
+export const EQUIPMENT: Record<string, EquipmentDef> = {
+  "sword-wood":   { id: "sword-wood",   name: "木の剣",     slot: "weapon",    atk: 3,  def: 0, mag: 0, spd: 0,  buyPrice: 50,  sellPrice: 25 },
+  "sword-iron":   { id: "sword-iron",   name: "鉄の剣",     slot: "weapon",    atk: 8,  def: 0, mag: 0, spd: 0,  buyPrice: 200, sellPrice: 100 },
+  "sword-steel":  { id: "sword-steel",  name: "鋼の剣",     slot: "weapon",    atk: 15, def: 0, mag: 0, spd: 0,  buyPrice: 500, sellPrice: 250 },
+  "staff-basic":  { id: "staff-basic",  name: "見習いの杖", slot: "weapon",    atk: 1,  def: 0, mag: 5, spd: 0,  buyPrice: 60,  sellPrice: 30 },
+  "armor-cloth":  { id: "armor-cloth",  name: "布の服",     slot: "armor",     atk: 0,  def: 3, mag: 0, spd: 0,  buyPrice: 40,  sellPrice: 20 },
+  "armor-chain":  { id: "armor-chain",  name: "鎖帷子",     slot: "armor",     atk: 0,  def: 8, mag: 0, spd: -1, buyPrice: 180, sellPrice: 90 },
+  "armor-steel":  { id: "armor-steel",  name: "鋼の鎧",     slot: "armor",     atk: 0,  def: 15, mag: 0, spd: -2, buyPrice: 450, sellPrice: 225 },
+  "shield-silver": { id: "shield-silver", name: "銀の盾",   slot: "accessory", atk: 0,  def: 5, mag: 2, spd: 0,  buyPrice: 350, sellPrice: 175 },
+};
