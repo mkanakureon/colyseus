@@ -29,7 +29,18 @@ const contentTypes: Record<string, string> = {
 };
 
 const httpServer = http.createServer((req, res) => {
-  const rawUrl = (req.url || "/").split("?")[0]; // strip query params
+  const rawUrl = (req.url || "/").split("?")[0];
+
+  // API: game data as JSON
+  if (rawUrl === "/api/game-data") {
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    res.end(JSON.stringify(mmo.gameData));
+    return;
+  }
+
   let filePath = rawUrl === "/" ? "/index.html" : rawUrl;
   const fullPath = path.join(CLIENT_DIR, filePath);
   const ext = path.extname(fullPath);
