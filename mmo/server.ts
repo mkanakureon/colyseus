@@ -37,6 +37,7 @@ const httpServer = http.createServer((req, res) => {
     res.writeHead(200, {
       "Content-Type": contentTypes[ext] + "; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
     });
     res.end(fs.readFileSync(fullPath));
   } else {
