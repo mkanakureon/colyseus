@@ -1,0 +1,737 @@
+[
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 1: Character Creation"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "戦士として目覚めた！ HP:120/120 MP:20/20 ATK:15 DEF:12 SPD:8"
+  },
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 2: Starting Village"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "はじまりの村にいる。穏やかな風が吹く小さな村。石畳の広場に井戸がある。"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "長老ヨハンに話しかけた"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  長老ヨハン [smile]: 「ようこそ、旅人よ。この村は平和じゃが...北の森には気をつけるのじゃ。」"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "商人マリアに話しかけた"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  商人マリア [笑顔]: 「いらっしゃい！何かお探しかしら？」"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "商人マリアの店:"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  回復薬 — 20G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  薬草 — 5G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  木の剣 — 50G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  布の服 — 40G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "木の剣を購入 (50G) → 残Gold: 50G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "布の服を購入 (40G) → 残Gold: 10G"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "アキラ",
+    "text": "回復薬 x1 を売却 (+10G) → Gold: 20G"
+  },
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 3: Equipment"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "木の剣を装備 → 実効ATK: 18 (base:15 + equip:3)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "布の服を装備 → 実効DEF: 15 (base:12 + equip:3)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "木の剣を外した → 実効ATK: 15 (装備ボーナスなし)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "木の剣を再装備"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "装備ボーナス: ATK+3 DEF+3 MAG+0 SPD+0"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 4: Quest Accept"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト「森の脅威」受注 — ゴブリンを3体倒す"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト「薬草集め」受注 — 薬草を5個集める"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト「遺跡調査」受注 — 古代遺跡に行く"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 5: Party"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ミサキをパーティに招待した"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 6: Forest Exploration"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "北へ移動 → 霧の森。薄暗い森の中。木々の隙間から霧が漂う。遠くで獣の唸り声が聞こえる。"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "--- 戦闘 1 ---"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンが現れた！ HP:40 ATK:7 DEF:3"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "攻撃！ (ATK:18)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:10)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ドロップ: 薬草"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「森の脅威」: ゴブリン (1/3)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「薬草集め」: 薬草 (1/5)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "--- 戦闘 2 ---"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンが現れた！ HP:40 ATK:7 DEF:3"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "攻撃！ (ATK:18)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:20)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ドロップ: 薬草"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "★ Lv UP! Lv.2 (HP+12 ATK+3 DEF+2)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「森の脅威」: ゴブリン (2/3)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「薬草集め」: 薬草 (2/5)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "--- 戦闘 3 ---"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンが現れた！ HP:40 ATK:7 DEF:3"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "攻撃！ (ATK:21)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:30)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ドロップ: 薬草"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「森の脅威」: ゴブリン (3/3) ★達成"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「薬草集め」: 薬草 (3/5)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "探索中にアイテム発見: 薬草 x1"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「薬草集め」: 薬草 (4/5)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "周囲を探索したが、特に何も見つからなかった。"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 7: Item Usage"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "アキラ",
+    "text": "HP が減っている (HP:60/132)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "回復薬を使った！ HP が 50 回復した！"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "HP: 110/132"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "回復薬を使った → HP: 132/132（上限でキャップ）"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 8: Quest Reports"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト「森の脅威」完了報告！ +30EXP +50G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  報酬アイテム: 回復薬x2"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 9: Ruins Visit"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "南へ移動 → 古代遺跡。崩れかけた石柱が並ぶ遺跡。壁面に古代文字が刻まれている。"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  クエスト「遺跡調査」: 古代遺跡 訪問 ★達成"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト「遺跡調査」完了報告！ +50EXP +100G"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 10: Death & Respawn"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "遺跡のゴーレムにやられた… HP:0 Gold:185G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "全滅… zone-001-villageにリスポーン"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  ペナルティ: -18G (185G → 167G)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  HP/MP全回復: HP:132/132 MP:22/22"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 11: World Tour (12 zones)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ はじまりの村 (zone-001-village) — 穏やかな風が吹く小さな村。石畳の広場に井戸がある。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 長老ヨハン: 「ようこそ、旅人よ。この村は平和じゃが...北の森には気をつけるのじゃ。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 商人マリア: 「いらっしゃい！何かお探しかしら？」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 王都セレス (zone-004-capital) — 大陸最大の都市。石造りの城壁に囲まれた街には冒険者ギルドがあ..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 鍛冶屋ガルド: 「武器か？防具か？いい素材があれば何でも打つぜ。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] ギルド受付嬢エリカ: 「冒険者ギルドへようこそ！クエストボードを見ていきますか？」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 港町カイル (zone-007-port) — 潮風が心地よい港町。大きな帆船が停泊している。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 船長バルド: 「よう！どっかに行きてぇのか？…だが今は船が出せん。魔物のせいでな。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 交易広場 (zone-003-market) — 各地から商人が集まる活気ある広場。色とりどりの露店が並ぶ。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 旅商人ロイド: 「よう！珍しいもんが入ったぜ。今なら特別価格だ。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 霧の森 (zone-002-forest) — 薄暗い森の中。木々の隙間から霧が漂う。遠くで獣の唸り声が聞こ..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 竜の峠 (zone-010-pass) — 切り立った崖の間を縫う険しい山道。風が強く、遠くに火山が見え..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 海岸洞窟 (zone-006-cave) — 波の音が反響する薄暗い洞窟。奥から冷たい風が吹いてくる。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 地下水路 (zone-008-sewer) — 王都の下に広がる地下水路。暗く湿った通路にネズミの影が走る。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 古代遺跡 (zone-005-ruins) — 崩れかけた石柱が並ぶ遺跡。壁面に古代文字が刻まれている。..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 古代神殿 (zone-012-temple) — 大陸の最奥にそびえる荘厳な神殿。古代文明の叡智が眠ると言われ..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  [NPC] 古代の賢者: 「...よくぞここまで来た。お前たちなら、この大陸を救えるかもしれぬ。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 火山地帯 (zone-009-volcano) — 赤く染まった大地。地面から蒸気が噴き出し、硫黄の匂いが立ち込..."
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "→ 氷結洞窟 (zone-011-ice) — 凍りついた洞窟。氷柱が天井から垂れ下がり、息が白く凍る。..."
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 12: Player Trading"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "交易広場に移動"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "旅商人ロイドに話しかけた"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  ロイド: 「よう！珍しいもんが入ったぜ。今なら特別価格だ。」"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "旅商人ロイドの店:"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  上級回復薬 — 80G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  魔力の水 — 30G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  鉄の剣 — 200G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "  鎖帷子 — 180G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ミサキに薬草 x3 を渡した"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 13: Party Disband & Reform"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 14: Boss Battle"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン1: 攻撃！ オークキングに12ダメージ (残HP:188)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン2: 攻撃！ オークキングに11ダメージ (残HP:169)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン3: 攻撃！ オークキングに12ダメージ (残HP:148)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン4: 攻撃！ オークキングに13ダメージ (残HP:126)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン5: 攻撃！ オークキングに12ダメージ (残HP:106)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン6: 攻撃！ オークキングに12ダメージ (残HP:85)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン7: 攻撃！ オークキングに13ダメージ (残HP:63)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン8: 攻撃！ オークキングに12ダメージ (残HP:43)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン9: 攻撃！ オークキングに13ダメージ (残HP:21)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ターン10: 攻撃！ オークキングに11ダメージ (残HP:0)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "+100EXP +50G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "★ Lv UP! Lv.4"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ボスドロップ: オークの戦斧"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 15: Final Status"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "Lv.4 (EXP:210)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "HP:156/156 MP:26/26"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "ATK:27 DEF:21 MAG:3 SPD:11"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "Gold:217G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "装備: 武器=sword-wood 防具=armor-cloth アクセ=なし"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "インベントリ: 薬草x1, 回復薬x2, オークの戦斧x1"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "アキラ",
+    "text": "クエスト: Q-001(completed), Q-002(active), Q-003(completed)"
+  }
+]

@@ -1,0 +1,84 @@
+[
+  {
+    "t": 1,
+    "type": "section",
+    "text": "1. Login"
+  },
+  {
+    "t": 44,
+    "type": "section",
+    "text": "2. Character Creation"
+  },
+  {
+    "t": 47,
+    "type": "section",
+    "text": "3. NPC Dialogue"
+  },
+  {
+    "t": 48,
+    "type": "section",
+    "text": "4. Shop"
+  },
+  {
+    "t": 49,
+    "type": "section",
+    "text": "5. Equipment"
+  },
+  {
+    "t": 51,
+    "type": "section",
+    "text": "6. Quest"
+  },
+  {
+    "t": 51,
+    "type": "section",
+    "text": "7. Status"
+  },
+  {
+    "t": 52,
+    "type": "section",
+    "text": "8. Inventory"
+  },
+  {
+    "t": 52,
+    "type": "section",
+    "text": "9. Explore"
+  },
+  {
+    "t": 52,
+    "type": "section",
+    "text": "10. Movement"
+  },
+  {
+    "t": 52,
+    "type": "section",
+    "text": "11. Item Usage"
+  },
+  {
+    "t": 53,
+    "type": "section",
+    "text": "12. Chat"
+  },
+  {
+    "t": 266,
+    "type": "player",
+    "player": "ミサキ",
+    "action": "chat_receive",
+    "detail": {
+      "sender": "アキラ",
+      "text": "Hello!",
+      "channel": "global"
+    },
+    "text": "チャット受信: アキラ: Hello!"
+  },
+  {
+    "t": 269,
+    "type": "section",
+    "text": "13. Sell"
+  },
+  {
+    "t": 269,
+    "type": "section",
+    "text": "Done"
+  }
+]

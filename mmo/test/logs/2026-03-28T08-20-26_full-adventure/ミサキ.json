@@ -1,0 +1,281 @@
+[
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 1: Character Creation"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "魔法使いとして目覚めた！ HP:80/80 MP:60/60 MAG:15 SPD:10"
+  },
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 2: Starting Village"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "はじまりの村にいる。"
+  },
+  {
+    "t": 1,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "回復薬 x3 を購入 → 残Gold: 40G"
+  },
+  {
+    "t": 1,
+    "type": "section",
+    "text": "Chapter 3: Equipment"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 4: Quest Accept"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 5: Party"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "アキラのパーティに参加！"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 6: Forest Exploration"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "アキラについて霧の森に入った"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "魔法攻撃！ (MAG:15)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:10)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "魔法攻撃！ (MAG:15)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:20)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "★ Lv UP! Lv.2 (HP+5 MAG+3 MP+8)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "魔法攻撃！ (MAG:18)"
+  },
+  {
+    "t": 2,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ゴブリンを倒した！ +10EXP +5G (累計EXP:30)"
+  },
+  {
+    "t": 2,
+    "type": "section",
+    "text": "Chapter 7: Item Usage"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "MP が減っている (MP:10/68)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "魔力の水を持っていない… MP はそのまま"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 8: Quest Reports"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 9: Ruins Visit"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 10: Death & Respawn"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 11: World Tour (12 zones)"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 12: Player Trading"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "交易広場に移動"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "アキラから薬草 x3 を受け取った"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 13: Party Disband & Reform"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "パーティを離脱"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 14: Boss Battle"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン1: 魔法攻撃！ オークキングに8ダメージ (残HP:180)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン2: 魔法攻撃！ オークキングに9ダメージ (残HP:160)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン3: 魔法攻撃！ オークキングに9ダメージ (残HP:139)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン4: 魔法攻撃！ オークキングに8ダメージ (残HP:118)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン5: 魔法攻撃！ オークキングに9ダメージ (残HP:97)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン6: 魔法攻撃！ オークキングに9ダメージ (残HP:76)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン7: 魔法攻撃！ オークキングに8ダメージ (残HP:55)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン8: 魔法攻撃！ オークキングに9ダメージ (残HP:34)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン9: 魔法攻撃！ オークキングに10ダメージ (残HP:11)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ターン10: 魔法攻撃！ オークキングに8ダメージ (残HP:0)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "+100EXP +50G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "★ Lv UP! Lv.3"
+  },
+  {
+    "t": 3,
+    "type": "section",
+    "text": "Chapter 15: Final Status"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "Lv.3 (EXP:130)"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "HP:90/90 MP:76/76"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "ATK:7 DEF:7 MAG:21 SPD:12"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "Gold:105G"
+  },
+  {
+    "t": 3,
+    "type": "player",
+    "player": "ミサキ",
+    "text": "インベントリ: 回復薬x6, 薬草x3"
+  }
+]

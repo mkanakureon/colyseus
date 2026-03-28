@@ -2,30 +2,61 @@ import { Room } from "colyseus";
 import type { Client } from "@colyseus/core";
 import { BattleState, BattlerState } from "../schemas/BattleState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
+import { type IPlayerPersistence } from "../persistence/PlayerPersistence.ts";
+import { LevelSystem } from "../systems/LevelSystem.ts";
+import { EncounterManager } from "../systems/EncounterManager.ts";
+import { ItemManager } from "../systems/ItemManager.ts";
+import { QuestManager } from "../systems/QuestManager.ts";
+import { DeathManager } from "../systems/DeathManager.ts";
 import type { BattleActionRequest, BattleActionResultEvent, BattlePhaseChangeEvent, BattleResultEvent, AppError } from "../types/messages.ts";
 
 interface BattleRoomOptions {
+  enemyId?: string;
   enemyName: string;
   enemyHp: number;
   enemyAttack: number;
   enemyDefense: number;
+  enemyExp?: number;
+  enemyGold?: number;
+  enemyDrops?: { itemId: string; name: string; chance: number }[];
+  isBoss?: boolean;
 }
 
 export class BattleRoom extends Room<BattleState> {
   static authAdapterInstance: KaedevnAuthAdapter;
+  static playerDBInstance: IPlayerPersistence;
 
   private authAdapter!: KaedevnAuthAdapter;
+  private playerDB!: IPlayerPersistence;
   private turnOrder: string[] = [];
   private turnIndex = 0;
   private actionLog: string[] = [];
-  private clientToBattler = new Map<string, string>(); // sessionId -> battlerId
+  private clientToBattler = new Map<string, string>();
+  private levelSys = new LevelSystem();
+  private encounterMgr = new EncounterManager();
+  private itemMgr = new ItemManager();
+  private questMgr = new QuestManager();
+  private deathMgr = new DeathManager();
+
+  // Enemy metadata (for rewards)
+  private enemyId = "enemy-001";
+  private enemyExp = 10;
+  private enemyGold = 5;
+  private enemyDrops: { itemId: string; name: string; chance: number }[] = [];
+  private isBoss = false;
 
   onCreate(options: BattleRoomOptions) {
     this.setState(new BattleState());
     this.authAdapter = BattleRoom.authAdapterInstance;
+    this.playerDB = BattleRoom.playerDBInstance;
     this.maxClients = 4;
 
-    // Create enemy battler
+    this.enemyId = options.enemyId || "enemy-001";
+    this.enemyExp = options.enemyExp ?? 10;
+    this.enemyGold = options.enemyGold ?? 5;
+    this.enemyDrops = options.enemyDrops ?? [];
+    this.isBoss = options.isBoss ?? false;
+
     const enemy = new BattlerState();
     enemy.id = "enemy-001";
     enemy.name = options.enemyName || "スライム";
@@ -62,16 +93,13 @@ export class BattleRoom extends Room<BattleState> {
 
     this.turnOrder.push(auth.userId);
 
-    // Start battle when first player joins
     if (this.state.phase === "waiting") {
       this.turnOrder.push("enemy-001");
       this.startBattle();
     }
   }
 
-  async onLeave(client: Client) {
-    // Player fled on disconnect
-  }
+  async onLeave(client: Client) {}
 
   private startBattle() {
     this.state.phase = "selecting";
@@ -84,8 +112,7 @@ export class BattleRoom extends Room<BattleState> {
     } satisfies BattlePhaseChangeEvent);
   }
 
-  private handleAction(client: Client, data: BattleActionRequest) {
-    // Find the battler for this client
+  private async handleAction(client: Client, data: BattleActionRequest) {
     const actorId = this.clientToBattler.get(client.sessionId);
     if (!actorId || actorId !== this.state.currentActorId) {
       client.send("error", { code: "BATTLE_NOT_YOUR_TURN", message: "あなたのターンではありません" } satisfies AppError);
@@ -106,32 +133,63 @@ export class BattleRoom extends Room<BattleState> {
       case "defend":
         this.executeDefend(actor);
         break;
+      case "item":
+        this.handleItemUse(client, actorId, data.itemId);
+        break;
       case "flee":
+        if (this.isBoss) {
+          client.send("error", { code: "BATTLE_INVALID_ACTION", message: "ボス戦では逃走できません" } satisfies AppError);
+          return;
+        }
         this.executeFlee(actor);
-        return; // flee ends the battle
+        return;
       default:
         client.send("error", { code: "BATTLE_INVALID_ACTION", message: "無効なアクションです" } satisfies AppError);
         return;
     }
 
-    // Check win/lose
-    if (this.checkBattleEnd()) return;
+    if (await this.checkBattleEnd()) return;
+    await this.advanceTurn();
+  }
 
-    // Next turn
-    this.advanceTurn();
+  private async handleItemUse(client: Client, actorId: string, itemId?: string) {
+    if (!itemId) {
+      client.send("error", { code: "BATTLE_INVALID_ACTION", message: "アイテムIDが必要です" } satisfies AppError);
+      return;
+    }
+
+    const pd = this.playerDB ? await this.playerDB.findByUserId(actorId) : null;
+    if (!pd) return;
+
+    const result = this.itemMgr.useItem(pd, itemId);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    // Sync HP/MP to battler state
+    const battler = this.state.battlers.get(actorId);
+    if (battler) {
+      battler.hp = pd.hp;
+      battler.mp = pd.mp;
+    }
+    await this.playerDB.save(pd);
+
+    this.broadcast("action_result", {
+      actorId,
+      actorName: battler?.name ?? actorId,
+      type: "item",
+      log: result.log!,
+    } satisfies BattleActionResultEvent);
   }
 
   private executeAttack(actor: BattlerState, targetId: string) {
     const target = this.state.battlers.get(targetId);
-    if (!target || target.status === "dead") {
-      return;
-    }
+    if (!target || target.status === "dead") return;
 
     const damage = Math.max(1, actor.attack - target.defense + Math.floor(Math.random() * 3));
     target.hp = Math.max(0, target.hp - damage);
-    if (target.hp <= 0) {
-      target.status = "dead";
-    }
+    if (target.hp <= 0) target.status = "dead";
 
     const log = `[e:serious]${actor.name}の攻撃！[click]${target.name}に${damage}ダメージ！`;
     this.actionLog.push(log);
@@ -149,7 +207,6 @@ export class BattleRoom extends Room<BattleState> {
   }
 
   private executeDefend(actor: BattlerState) {
-    // Temporary defense boost (simplified: just log it)
     const log = `[e:normal]${actor.name}は身を守っている。`;
     this.actionLog.push(log);
     this.state.log = log;
@@ -176,33 +233,23 @@ export class BattleRoom extends Room<BattleState> {
     } satisfies BattleResultEvent);
   }
 
-  private executeEnemyTurn() {
+  private async executeEnemyTurn() {
     const enemy = this.state.battlers.get("enemy-001");
-    if (!enemy || enemy.status === "dead") {
-      this.advanceTurn();
-      return;
-    }
+    if (!enemy || enemy.status === "dead") { await this.advanceTurn(); return; }
 
-    // Enemy attacks a random alive player
     const alivePlayers: BattlerState[] = [];
-    this.state.battlers.forEach((b) => {
-      if (b.isPlayer && b.status === "alive") alivePlayers.push(b);
-    });
-
+    this.state.battlers.forEach((b) => { if (b.isPlayer && b.status === "alive") alivePlayers.push(b); });
     if (alivePlayers.length === 0) return;
 
     const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
     this.executeAttack(enemy, target.id);
 
-    if (!this.checkBattleEnd()) {
-      this.advanceTurn();
-    }
+    if (!(await this.checkBattleEnd())) await this.advanceTurn();
   }
 
-  private advanceTurn() {
+  private async advanceTurn() {
     this.turnIndex = (this.turnIndex + 1) % this.turnOrder.length;
 
-    // Skip dead battlers
     let attempts = 0;
     while (attempts < this.turnOrder.length) {
       const nextId = this.turnOrder[this.turnIndex];
@@ -212,58 +259,85 @@ export class BattleRoom extends Room<BattleState> {
       attempts++;
     }
 
-    if (this.turnIndex === 0) {
-      this.state.turn++;
-    }
+    if (this.turnIndex === 0) this.state.turn++;
 
     const currentId = this.turnOrder[this.turnIndex];
     this.state.currentActorId = currentId;
     this.state.phase = "selecting";
 
-    this.broadcast("phase_change", {
-      phase: "selecting",
-      currentActorId: currentId,
-    } satisfies BattlePhaseChangeEvent);
+    this.broadcast("phase_change", { phase: "selecting", currentActorId: currentId } satisfies BattlePhaseChangeEvent);
 
-    // Auto-execute enemy turn
     const current = this.state.battlers.get(currentId);
     if (current && !current.isPlayer) {
       this.state.phase = "executing";
-      this.executeEnemyTurn();
+      await this.executeEnemyTurn();
     }
   }
 
-  private checkBattleEnd(): boolean {
+  private async checkBattleEnd(): Promise<boolean> {
     const enemy = this.state.battlers.get("enemy-001");
     if (enemy && enemy.status === "dead") {
       this.state.phase = "result";
       this.state.result = "win";
-      const expGained = 10;
-      const goldGained = 5;
-      const log = `[e:smile]${enemy.name}を倒した！[click]${expGained}EXP と ${goldGained}ゴールドを獲得！`;
+
+      // Roll drops
+      const drops = this.encounterMgr.rollDrops(
+        { id: this.enemyId, name: enemy.name, hp: 0, atk: 0, def: 0, exp: this.enemyExp, gold: this.enemyGold, drops: this.enemyDrops },
+      );
+
+      // Apply rewards to all players via DB
+      const levelUps: Record<string, any> = {};
+      const questProgress: Record<string, any[]> = {};
+
+      for (const [sessionId, userId] of this.clientToBattler) {
+        if (!this.playerDB) continue;
+        const pd = await this.playerDB.findByUserId(userId);
+        if (!pd) continue;
+
+        pd.gold += this.enemyGold;
+        if (drops.length > 0) this.itemMgr.addToInventory(pd, drops);
+
+        const lvResult = this.levelSys.addExp(pd, this.enemyExp);
+        if (lvResult) levelUps[userId] = lvResult;
+
+        const qProgress = this.questMgr.onEnemyDefeated(pd, this.enemyId);
+        if (qProgress.length > 0) questProgress[userId] = qProgress;
+
+        await this.playerDB.save(pd);
+      }
+
+      const log = `[e:smile]${enemy.name}を倒した！[click]${this.enemyExp}EXP と ${this.enemyGold}ゴールドを獲得！`;
       this.broadcast("battle_result", {
         result: "win",
-        expGained,
-        goldGained,
-        drops: [],
+        expGained: this.enemyExp,
+        goldGained: this.enemyGold,
+        drops: drops.map(d => ({ itemId: d.itemId, name: d.name })),
         log,
-      } satisfies BattleResultEvent);
+        levelUps,
+        questProgress,
+      } as any);
       return true;
     }
 
     let allPlayersDead = true;
-    this.state.battlers.forEach((b) => {
-      if (b.isPlayer && b.status === "alive") allPlayersDead = false;
-    });
+    this.state.battlers.forEach((b) => { if (b.isPlayer && b.status === "alive") allPlayersDead = false; });
 
     if (allPlayersDead) {
       this.state.phase = "result";
       this.state.result = "lose";
+
+      // Apply death penalty
+      for (const [, userId] of this.clientToBattler) {
+        if (!this.playerDB) continue;
+        const pd = await this.playerDB.findByUserId(userId);
+        if (pd) {
+          const penalty = this.deathMgr.applyPenalty(pd);
+          await this.playerDB.save(pd);
+        }
+      }
+
       const log = "[e:sad]全滅した...";
-      this.broadcast("battle_result", {
-        result: "lose",
-        log,
-      } satisfies BattleResultEvent);
+      this.broadcast("battle_result", { result: "lose", log } satisfies BattleResultEvent);
       return true;
     }
 
