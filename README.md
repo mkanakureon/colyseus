@@ -18,6 +18,43 @@
   </h3>
 </div>
 
+## このフォークについて
+
+本リポジトリは [colyseus/colyseus](https://github.com/colyseus/colyseus) のフォークです。
+
+[kaedevn](https://github.com/mkanakureon) プロジェクト（ビジュアルノベル / RPG エンジン）のマルチプレイヤー機能開発のために使用しています。
+
+### 主な用途
+
+- **テキスト型 MMO の基盤検証** — Colyseus の Room ベースアーキテクチャを使い、ノベルゲーム × マルチプレイの統合を設計
+- **AI ドキュメント生成** — Claude Code によるソースコード読解・API リファレンス・設計文書の自動生成（`docs/09_reports/`）
+- **Claude Code スキル整備** — ビルド・テスト・コミット等の開発自動化スキル（`.claude/skills/`）
+
+### 追加されたドキュメント（`docs/09_reports/2026/03/28/`）
+
+| # | 内容 |
+|---|------|
+| 01 | ドキュメント整備計画書 |
+| 02 | アーキテクチャリファレンス |
+| 03 | Core API リファレンス（Room / Server / MatchMaker） |
+| 04 | SDK API リファレンス（Client / Room / Auth） |
+| 05 | パッケージマップ（全24パッケージ） |
+| 06 | 開発ガイド |
+| 07 | Transport ガイド |
+| 08 | Driver & Presence ガイド |
+| 09 | 認証ガイド |
+| 10 | Room ライフサイクル仕様 |
+| 11 | マッチメイキング仕様 |
+| 12 | 状態同期分析 |
+| 13 | スケーリングガイド |
+| 14 | kaedevn テキスト型 MMO 設計書 |
+| 15 | ビルド・テスト検証レポート（290/291 passing） |
+| 16 | テスト仕様書・モック仕様書 |
+
+> これらのドキュメントは Claude Opus 4.6 がソースコードを読解して自動生成したものです。
+
+---
+
 Colyseus is an Authoritative Multiplayer Framework for Node.js, with SDKs
 available for all major platforms and engines.
 
