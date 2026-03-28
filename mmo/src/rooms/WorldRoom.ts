@@ -68,6 +68,13 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   async onJoin(client: Client, options: any, auth: KaedevnTokenPayload) {
+    // Reject duplicate userId
+    for (const [, existing] of this.state.players) {
+      if (existing.userId === auth.userId) {
+        throw new Error("Already joined");
+      }
+    }
+
     // Load or create player data
     let playerData = await this.playerDB.findByUserId(auth.userId);
     if (!playerData) {

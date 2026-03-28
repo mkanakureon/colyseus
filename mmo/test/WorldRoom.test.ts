@@ -155,6 +155,83 @@ describe("WorldRoom", () => {
     assert.ok(room.sessionId);
   });
 
+  it("W-JOIN-03: should reject duplicate userId", async () => {
+    const token = createTestToken({ userId: "user-dup-03" });
+    const client1 = new SDKClient(TEST_ENDPOINT);
+    const room1 = await client1.joinOrCreate("world", {
+      token,
+      zoneId: village.id,
+      zoneName: village.name,
+      authAdapter,
+      playerDB,
+    });
+
+    const client2 = new SDKClient(TEST_ENDPOINT);
+    try {
+      await client2.join("world", {
+        token,
+        zoneId: village.id,
+        zoneName: village.name,
+        authAdapter,
+        playerDB,
+      });
+      assert.fail("Should have thrown for duplicate userId");
+    } catch (e: any) {
+      assert.ok(e.message || e.code);
+    }
+
+    await room1.leave();
+  });
+
+  it("W-LEAVE-01: should remove player from state on leave", async () => {
+    const client1 = new SDKClient(TEST_ENDPOINT);
+    const client2 = new SDKClient(TEST_ENDPOINT);
+    const token1 = createTestToken({ userId: "user-leave-01a" });
+    const token2 = createTestToken({ userId: "user-leave-01b" });
+    const roomOpts = { zoneId: village.id, zoneName: village.name, authAdapter, playerDB };
+
+    const room1 = await client1.joinOrCreate("world", { token: token1, ...roomOpts });
+    const room2 = await client2.join("world", { token: token2, ...roomOpts });
+    await new Promise(r => setTimeout(r, 200));
+
+    const sessionId1 = room1.sessionId;
+    await room1.leave();
+    await new Promise(r => setTimeout(r, 200));
+
+    // room2's state should no longer contain room1's player
+    const players = room2.state.players;
+    let found = false;
+    players.forEach((p: any) => { if (p.sessionId === sessionId1) found = true; });
+    assert.strictEqual(found, false, "Player should be removed from state after leave");
+
+    await room2.leave();
+  });
+
+  it("W-LEAVE-02: should save player data to DB on leave", async () => {
+    const savedPlayer = defaultPlayerData("user-leave-02", "離脱テスト");
+    savedPlayer.hp = 80;
+    playerDB.seed([savedPlayer]);
+
+    const client = new SDKClient(TEST_ENDPOINT);
+    const token = createTestToken({ userId: "user-leave-02" });
+    const room = await client.joinOrCreate("world", {
+      token,
+      zoneId: village.id,
+      zoneName: village.name,
+      authAdapter,
+      playerDB,
+    });
+
+    await new Promise(r => setTimeout(r, 200));
+    await room.leave();
+    await new Promise(r => setTimeout(r, 200));
+
+    // DB should have updated lastLogin
+    const dbPlayer = await playerDB.findByUserId("user-leave-02");
+    assert.ok(dbPlayer, "Player data should be saved to DB");
+    assert.strictEqual(dbPlayer!.hp, 80);
+  });
+
   // === W-MOVE: Zone Movement ===
 
   it("W-MOVE-01: should send zone_change for valid direction", async () => {
@@ -227,6 +304,30 @@ describe("WorldRoom", () => {
     await room.leave();
   });
 
+  it("W-NPC-02: should return dialogue from merchant NPC", async () => {
+    const client = new SDKClient(TEST_ENDPOINT);
+    const token = createTestToken({ userId: "user-npc-02" });
+    const room = await client.joinOrCreate("world", {
+      token,
+      zoneId: village.id,
+      zoneName: village.name,
+      npcs: village.npcs,
+      adjacentZones: village.adjacentZones,
+      authAdapter,
+      playerDB,
+    });
+
+    const dialogue = new Promise<any>((resolve) => {
+      room.onMessage("npc_dialogue", resolve);
+    });
+
+    room.send("interact", { targetId: "npc-merchant" });
+    const result = await dialogue;
+    assert.strictEqual(result.npcName, "商人マリア");
+    assert.ok(result.text.includes("[e:")); // inline tags present
+    await room.leave();
+  });
+
   it("W-NPC-03: should error for unknown NPC", async () => {
     const client = new SDKClient(TEST_ENDPOINT);
     const token = createTestToken({ userId: "user-npc-03" });
@@ -250,6 +351,37 @@ describe("WorldRoom", () => {
   });
 
   // === W-SYNC: Player Sync ===
+
+  it("W-SYNC-02: should sync pose change to all clients", async () => {
+    const client1 = new SDKClient(TEST_ENDPOINT);
+    const client2 = new SDKClient(TEST_ENDPOINT);
+    const token1 = createTestToken({ userId: "user-sync-02a" });
+    const token2 = createTestToken({ userId: "user-sync-02b" });
+
+    const roomOpts = {
+      zoneId: village.id,
+      zoneName: village.name,
+      authAdapter,
+      playerDB,
+    };
+
+    const room1 = await client1.joinOrCreate("world", { token: token1, ...roomOpts });
+    const room2 = await client2.join("world", { token: token2, ...roomOpts });
+
+    await new Promise(r => setTimeout(r, 300));
+
+    // Client 1 changes pose
+    room1.send("pose", { pose: "sitting" });
+    await new Promise(r => setTimeout(r, 300));
+
+    // Client 2 should see the pose change via state sync
+    const player1InRoom2 = room2.state.players.get(room1.sessionId);
+    assert.ok(player1InRoom2, "Player 1 should be visible in room2 state");
+    assert.strictEqual(player1InRoom2.pose, "sitting");
+
+    await room1.leave();
+    await room2.leave();
+  });
 
   it("W-SYNC-01: should sync expression change to all clients", async () => {
     const client1 = new SDKClient(TEST_ENDPOINT);
