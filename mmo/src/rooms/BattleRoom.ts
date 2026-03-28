@@ -1,4 +1,5 @@
-import { Room, Client } from "colyseus";
+import { Room } from "colyseus";
+import type { Client } from "@colyseus/core";
 import { BattleState, BattlerState } from "../schemas/BattleState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
 import type { BattleActionRequest, BattleActionResultEvent, BattlePhaseChangeEvent, BattleResultEvent, AppError } from "../types/messages.ts";

@@ -1,16 +1,13 @@
 {
+  "extends": "../tsconfig/tsconfig.all.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "target": "ESNext",
+    "customConditions": ["@source"],
+    "outDir": "build",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
-    "esModuleInterop": true,
-    "strict": true,
-    "outDir": "build",
-    "declaration": true,
-    "sourceMap": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "server.ts", "client-cli.ts"]
 }

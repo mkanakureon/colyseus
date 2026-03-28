@@ -1,4 +1,5 @@
-import { Room, Client } from "colyseus";
+import { Room } from "colyseus";
+import type { Client } from "@colyseus/core";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence } from "../persistence/PlayerPersistence.ts";

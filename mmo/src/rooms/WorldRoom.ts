@@ -1,4 +1,5 @@
-import { Room, Client } from "colyseus";
+import { Room } from "colyseus";
+import type { Client } from "@colyseus/core";
 import { WorldState, NPCState } from "../schemas/WorldState.ts";
 import { PlayerState } from "../schemas/PlayerState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
