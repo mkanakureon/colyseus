@@ -1,18 +1,18 @@
 ---
-description: Use when the user asks to save a report, document, or summary to docs/reports/. Triggers on "レポート書いて", "保存して", "振り返り文書", "まとめを書いて", "ドキュメント保存", "save report".
+description: Use when the user asks to save a report, document, or summary to docs/09_reports/. Triggers on "レポート書いて", "保存して", "振り返り文書", "まとめを書いて", "ドキュメント保存", "save report".
 ---
 
 # レポート保存 Skill
 
-作業の振り返り・設計文書・調査結果などを `docs/reports/` に保存する。
+作業の振り返り・設計文書・調査結果などを `docs/09_reports/` に保存する。
 
 ## 保存先ルール
 
 ```
-docs/reports/{年}/{月}/{日}/{連番}-{タイトル}.md
+docs/09_reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 ```
 
-例: `docs/reports/2026/03/28/06-transport-benchmark-report.md`
+例: `docs/09_reports/2026/03/28/06-transport-benchmark-report.md`
 
 - **年月日**: 今日の日付を使う（`YYYY/MM/DD`、ゼロ埋め）
 - **連番**: その日のフォルダ内の既存ファイル数 + 1（ゼロ埋め2桁）
@@ -32,17 +32,17 @@ docs/reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 
 ## 手順
 
-1. 今日のフォルダを確認: `ls docs/reports/YYYY/MM/DD/`
+1. 今日のフォルダを確認: `ls docs/09_reports/YYYY/MM/DD/`
 2. 既存ファイル数から次の連番を決定
-3. フォルダがなければ作成: `mkdir -p docs/reports/YYYY/MM/DD`
+3. フォルダがなければ作成: `mkdir -p docs/09_reports/YYYY/MM/DD`
 4. ファイルを作成
 
 ## デフォルト保存先のルール
 
-**保存先が明示されていない場合、常に `docs/reports/` を使う。**
+**保存先が明示されていない場合、常に `docs/09_reports/` を使う。**
 
-- 「ここに保存して」→ `docs/reports/` に保存
-- 「文書を作って」「まとめて」など、保存先の言及がない場合も `docs/reports/` に保存
+- 「ここに保存して」→ `docs/09_reports/` に保存
+- 「文書を作って」「まとめて」など、保存先の言及がない場合も `docs/09_reports/` に保存
 
 ## トリガー
 
@@ -56,7 +56,7 @@ docs/reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 
 ### 重要: 暗黙のトリガー
 
-ユーザーが「保存」「文書」「ドキュメント」「まとめ」「report」「save」などのキーワードを含む指示をした場合、保存先が明示されていなくても `docs/reports/` を保存先とみなして発動する。
+ユーザーが「保存」「文書」「ドキュメント」「まとめ」「report」「save」などのキーワードを含む指示をした場合、保存先が明示されていなくても `docs/09_reports/` を保存先とみなして発動する。
 
 ## レポートのフォーマット（必須）
 
