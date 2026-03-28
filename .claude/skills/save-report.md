@@ -9,30 +9,32 @@ description: Use when the user asks to save a report, document, or summary to do
 ## 保存先ルール
 
 ```
-docs/reports/{YYYY-MM-DD}-{連番}-{タイトル}.md
+docs/reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 ```
 
-例: `docs/reports/2026-03-28-01-transport-benchmark-report.md`
+例: `docs/reports/2026/03/28/06-transport-benchmark-report.md`
 
-- **日付**: 今日の日付（`YYYY-MM-DD`）
-- **連番**: その日の既存ファイル数 + 1（ゼロ埋め2桁）
+- **年月日**: 今日の日付を使う（`YYYY/MM/DD`、ゼロ埋め）
+- **連番**: その日のフォルダ内の既存ファイル数 + 1（ゼロ埋め2桁）
 - **タイトル**: 英語ケバブケース、内容を簡潔に表す
 
 ### 種別サフィックス
 
 | 種別 | サフィックス | 例 |
 |---|---|---|
-| 実装レポート | `-report` | `01-room-lifecycle-report.md` |
+| 計画書 | `-plan` | `01-documentation-plan.md` |
+| 実装レポート | `-report` | `06-room-lifecycle-report.md` |
 | 設計書・仕様書 | `-spec` / `-design` | `02-transport-api-spec.md` |
-| リファレンス | `-reference` | `03-driver-api-reference.md` |
+| リファレンス | `-reference` | `03-core-api-reference.md` |
+| ガイド | `-guide` | `07-transport-guide.md` |
 | ベンチマーク | `-benchmark` | `04-ws-vs-uws-benchmark.md` |
 | 調査・分析 | `-analysis` | `05-schema-performance-analysis.md` |
 
 ## 手順
 
-1. `docs/reports/` がなければ作成: `mkdir -p docs/reports/`
-2. 既存ファイルを確認: `ls docs/reports/ | grep "^{YYYY-MM-DD}" | wc -l`
-3. 次の連番を決定
+1. 今日のフォルダを確認: `ls docs/reports/YYYY/MM/DD/`
+2. 既存ファイル数から次の連番を決定
+3. フォルダがなければ作成: `mkdir -p docs/reports/YYYY/MM/DD`
 4. ファイルを作成
 
 ## デフォルト保存先のルール
@@ -65,7 +67,7 @@ docs/reports/{YYYY-MM-DD}-{連番}-{タイトル}.md
 ```markdown
 ---
 title: {ドキュメントタイトル}
-type: {report | spec | reference | guide | analysis | benchmark}
+type: {report | spec | reference | guide | analysis | benchmark | plan}
 project: colyseus
 version: 0.17.x
 date: {YYYY-MM-DD}
