@@ -46,5 +46,125 @@
         "weight": 15
       }
     ]
+  },
+  "zone-006-cave": {
+    "encounterRate": 0.55,
+    "itemFindRate": 0.15,
+    "findableItems": [
+      {
+        "itemId": "iron-ore",
+        "quantity": 1
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "skeleton",
+        "weight": 50
+      },
+      {
+        "enemyId": "bat",
+        "weight": 30
+      },
+      {
+        "enemyId": "mummy",
+        "weight": 20
+      }
+    ]
+  },
+  "zone-008-sewer": {
+    "encounterRate": 0.5,
+    "itemFindRate": 0.2,
+    "findableItems": [
+      {
+        "itemId": "herb-001",
+        "quantity": 1
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "bat",
+        "weight": 50
+      },
+      {
+        "enemyId": "goblin",
+        "weight": 30
+      },
+      {
+        "enemyId": "skeleton",
+        "weight": 20
+      }
+    ]
+  },
+  "zone-009-volcano": {
+    "encounterRate": 0.7,
+    "itemFindRate": 0.1,
+    "findableItems": [
+      {
+        "itemId": "iron-ore",
+        "quantity": 2
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "golem",
+        "weight": 40
+      },
+      {
+        "enemyId": "mummy",
+        "weight": 35
+      },
+      {
+        "enemyId": "orc",
+        "weight": 25
+      }
+    ]
+  },
+  "zone-010-pass": {
+    "encounterRate": 0.6,
+    "itemFindRate": 0.1,
+    "findableItems": [
+      {
+        "itemId": "iron-ore",
+        "quantity": 1
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "orc",
+        "weight": 40
+      },
+      {
+        "enemyId": "skeleton",
+        "weight": 30
+      },
+      {
+        "enemyId": "golem",
+        "weight": 30
+      }
+    ]
+  },
+  "zone-011-ice": {
+    "encounterRate": 0.65,
+    "itemFindRate": 0.1,
+    "findableItems": [
+      {
+        "itemId": "herb-001",
+        "quantity": 2
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "golem",
+        "weight": 50
+      },
+      {
+        "enemyId": "mummy",
+        "weight": 30
+      },
+      {
+        "enemyId": "orc",
+        "weight": 20
+      }
+    ]
   }
 }

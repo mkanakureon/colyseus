@@ -149,7 +149,9 @@
           "Q-002",
           "Q-003",
           "Q-004",
-          "Q-005"
+          "Q-005",
+          "Q-006",
+          "Q-007"
         ]
       }
     ]
@@ -173,7 +175,7 @@
     "name": "海岸洞窟",
     "description": "波の音が反響する薄暗い洞窟。奥から冷たい風が吹いてくる。",
     "maxPlayers": 15,
-    "isSafe": true,
+    "isSafe": false,
     "adjacentZones": [
       {
         "direction": "west",
@@ -215,10 +217,12 @@
         "x": 400,
         "y": 500,
         "dialogue": [
-          "[e:grin]よう！どっかに行きてぇのか？[click][e:normal]…だが今は船が出せん。魔物のせいでな。"
+          "[e:serious]よう！どっかに行きてぇのか？[click][e:sad]…だが今は船が出せん。海岸洞窟にスケルトンが湧いてるんだ。[click][e:grin]退治してくれたら、どこへでも連れてってやるぜ！"
         ],
         "shop": null,
-        "quests": []
+        "quests": [
+          "Q-006"
+        ]
       }
     ]
   },
@@ -227,7 +231,7 @@
     "name": "地下水路",
     "description": "王都の下に広がる地下水路。暗く湿った通路にネズミの影が走る。",
     "maxPlayers": 15,
-    "isSafe": true,
+    "isSafe": false,
     "adjacentZones": [
       {
         "direction": "east",
@@ -241,7 +245,7 @@
     "name": "火山地帯",
     "description": "赤く染まった大地。地面から蒸気が噴き出し、硫黄の匂いが立ち込める。",
     "maxPlayers": 20,
-    "isSafe": true,
+    "isSafe": false,
     "adjacentZones": [
       {
         "direction": "west",
@@ -255,7 +259,7 @@
     "name": "竜の峠",
     "description": "切り立った崖の間を縫う険しい山道。風が強く、遠くに火山が見える。",
     "maxPlayers": 30,
-    "isSafe": true,
+    "isSafe": false,
     "adjacentZones": [
       {
         "direction": "north",
@@ -281,7 +285,7 @@
     "name": "氷結洞窟",
     "description": "凍りついた洞窟。氷柱が天井から垂れ下がり、息が白く凍る。",
     "maxPlayers": 15,
-    "isSafe": true,
+    "isSafe": false,
     "adjacentZones": [
       {
         "direction": "east",
@@ -311,10 +315,12 @@
         "x": 500,
         "y": 300,
         "dialogue": [
-          "[e:normal]...よくぞここまで来た。[click][e:smile]お前たちなら、この大陸を救えるかもしれぬ。"
+          "[e:normal]...よくぞここまで来た。[click][e:serious]この神殿には古代の碑文がある。だが、ゴーレムの守護者がそれを守っている。[click][e:smile]お前たちなら、乗り越えられるかもしれぬ。"
         ],
         "shop": null,
-        "quests": []
+        "quests": [
+          "Q-007"
+        ]
       }
     ]
   }

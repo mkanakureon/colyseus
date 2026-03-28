@@ -102,5 +102,61 @@
       "exp": 60,
       "gold": 150
     }
+  },
+  "Q-006": {
+    "id": "Q-006",
+    "name": "航路の安全",
+    "giver": "npc-captain",
+    "description": "海岸洞窟の魔物を倒して航路を安全にしてくれ",
+    "objectives": [
+      {
+        "type": "defeat",
+        "targetId": "skeleton",
+        "targetName": "スケルトン",
+        "required": 5
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 200,
+      "items": [
+        {
+          "itemId": "potion-002",
+          "name": "上級回復薬",
+          "quantity": 3
+        }
+      ]
+    }
+  },
+  "Q-007": {
+    "id": "Q-007",
+    "name": "古代の試練",
+    "giver": "npc-sage",
+    "description": "古代神殿の奥にある碑文を読み解け。その前にゴーレムガーディアンを倒す必要がある",
+    "objectives": [
+      {
+        "type": "defeat",
+        "targetId": "golem",
+        "targetName": "ゴーレム",
+        "required": 3
+      },
+      {
+        "type": "visit",
+        "targetId": "zone-012-temple",
+        "targetName": "古代神殿",
+        "required": 1
+      }
+    ],
+    "rewards": {
+      "exp": 200,
+      "gold": 500,
+      "items": [
+        {
+          "itemId": "shield-silver",
+          "name": "銀の盾",
+          "quantity": 1
+        }
+      ]
+    }
   }
 }
