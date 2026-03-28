@@ -1,0 +1,372 @@
+{
+  "testName": "integration-e2e",
+  "startedAt": "2026-03-28T08:07:20.783Z",
+  "durationMs": 259,
+  "players": [
+    "アキラ",
+    "ミサキ"
+  ],
+  "entries": [
+    {
+      "t": 1,
+      "type": "section",
+      "text": "1. Login"
+    },
+    {
+      "t": 37,
+      "type": "player",
+      "player": "アキラ",
+      "action": "login",
+      "detail": {
+        "needsCreate": true
+      },
+      "text": "ログイン → キャラ作成が必要"
+    },
+    {
+      "t": 37,
+      "type": "section",
+      "text": "2. Character Creation"
+    },
+    {
+      "t": 38,
+      "type": "player",
+      "player": "アキラ",
+      "action": "create_character",
+      "detail": {
+        "name": "アキラ",
+        "classType": "warrior",
+        "hp": 120,
+        "maxHp": 120,
+        "mp": 20,
+        "maxMp": 20,
+        "atk": 15,
+        "def": 12,
+        "mag": 3,
+        "spd": 8,
+        "gold": 100
+      },
+      "text": "キャラ作成: 戦士 HP:120 ATK:15 DEF:12"
+    },
+    {
+      "t": 38,
+      "type": "section",
+      "text": "3. NPC Dialogue"
+    },
+    {
+      "t": 38,
+      "type": "player",
+      "player": "アキラ",
+      "action": "interact",
+      "detail": {
+        "npcId": "npc-elder",
+        "npcName": "長老ヨハン",
+        "text": "[e:smile]ようこそ、旅人よ。[click]この村は平和じゃが...[e:serious]北の森には気をつけるのじゃ。"
+      },
+      "text": "長老ヨハンに話しかけた"
+    },
+    {
+      "t": 38,
+      "type": "section",
+      "text": "4. Shop"
+    },
+    {
+      "t": 39,
+      "type": "player",
+      "player": "アキラ",
+      "action": "shop_list",
+      "detail": {
+        "npcId": "npc-merchant",
+        "itemCount": 4,
+        "items": [
+          {
+            "id": "potion-001",
+            "name": "回復薬",
+            "price": 20,
+            "description": "HP を 50 回復する"
+          },
+          {
+            "id": "herb-001",
+            "name": "薬草",
+            "price": 5,
+            "description": "素材。薬の原料になる"
+          },
+          {
+            "id": "sword-wood",
+            "name": "木の剣",
+            "price": 50
+          },
+          {
+            "id": "armor-cloth",
+            "name": "布の服",
+            "price": 40
+          }
+        ]
+      },
+      "text": "商人マリアの店を開いた"
+    },
+    {
+      "t": 40,
+      "type": "player",
+      "player": "アキラ",
+      "action": "shop_buy",
+      "detail": {
+        "itemId": "sword-wood",
+        "gold": 50
+      },
+      "text": "木の剣を購入 → Gold: 50G"
+    },
+    {
+      "t": 40,
+      "type": "section",
+      "text": "5. Equipment"
+    },
+    {
+      "t": 40,
+      "type": "player",
+      "player": "アキラ",
+      "action": "equip",
+      "detail": {
+        "itemId": "sword-wood",
+        "stats": {
+          "atk": 18,
+          "def": 12,
+          "mag": 3,
+          "spd": 8
+        }
+      },
+      "text": "木の剣を装備 → ATK:18"
+    },
+    {
+      "t": 41,
+      "type": "player",
+      "player": "アキラ",
+      "action": "unequip",
+      "detail": {
+        "slot": "weapon",
+        "stats": {
+          "atk": 15,
+          "def": 12,
+          "mag": 3,
+          "spd": 8
+        }
+      },
+      "text": "木の剣を外した → ATK:15"
+    },
+    {
+      "t": 41,
+      "type": "player",
+      "player": "アキラ",
+      "action": "equip",
+      "detail": {
+        "itemId": "sword-wood"
+      },
+      "text": "木の剣を再装備"
+    },
+    {
+      "t": 41,
+      "type": "section",
+      "text": "6. Quest"
+    },
+    {
+      "t": 41,
+      "type": "player",
+      "player": "アキラ",
+      "action": "quest_accept",
+      "detail": {
+        "questId": "Q-001"
+      },
+      "text": "クエスト「森の脅威」受注"
+    },
+    {
+      "t": 42,
+      "type": "system",
+      "action": "quest_accept_error",
+      "detail": {
+        "code": "QUEST_ALREADY_ACCEPTED"
+      },
+      "text": "二重受注拒否: QUEST_ALREADY_ACCEPTED"
+    },
+    {
+      "t": 42,
+      "type": "section",
+      "text": "7. Status"
+    },
+    {
+      "t": 42,
+      "type": "player",
+      "player": "アキラ",
+      "action": "status",
+      "detail": {
+        "name": "アキラ",
+        "classType": "warrior",
+        "level": 1,
+        "exp": 0,
+        "hp": 120,
+        "maxHp": 120,
+        "mp": 20,
+        "maxMp": 20,
+        "atk": 18,
+        "def": 12,
+        "mag": 3,
+        "spd": 8,
+        "gold": 50,
+        "equipment": {
+          "weapon": "sword-wood",
+          "armor": null,
+          "accessory": null
+        },
+        "zoneId": "zone-001-village"
+      },
+      "text": "Lv.1 HP:120/120 ATK:18 Gold:50G"
+    },
+    {
+      "t": 42,
+      "type": "section",
+      "text": "8. Inventory"
+    },
+    {
+      "t": 42,
+      "type": "player",
+      "player": "アキラ",
+      "action": "inventory",
+      "detail": {
+        "items": [
+          {
+            "itemId": "potion-001",
+            "name": "回復薬",
+            "quantity": 3,
+            "type": "consumable"
+          }
+        ],
+        "gold": 50
+      },
+      "text": "所持品: 回復薬x3"
+    },
+    {
+      "t": 42,
+      "type": "section",
+      "text": "9. Explore"
+    },
+    {
+      "t": 42,
+      "type": "player",
+      "player": "アキラ",
+      "action": "explore_error",
+      "detail": {
+        "code": "ZONE_SAFE"
+      },
+      "text": "村で探索 → 安全地帯"
+    },
+    {
+      "t": 42,
+      "type": "section",
+      "text": "10. Movement"
+    },
+    {
+      "t": 43,
+      "type": "player",
+      "player": "アキラ",
+      "action": "move",
+      "detail": {
+        "direction": "north",
+        "zoneId": "zone-002-forest"
+      },
+      "text": "北へ移動 → zone-002-forest"
+    },
+    {
+      "t": 43,
+      "type": "player",
+      "player": "アキラ",
+      "action": "move_error",
+      "detail": {
+        "direction": "west",
+        "code": "ZONE_NO_ADJACENT"
+      },
+      "text": "西は行き止まり"
+    },
+    {
+      "t": 43,
+      "type": "section",
+      "text": "11. Item Usage"
+    },
+    {
+      "t": 43,
+      "type": "player",
+      "player": "アキラ",
+      "action": "use_item",
+      "detail": {
+        "itemId": "potion-001",
+        "hp": 120,
+        "mp": 20
+      },
+      "text": "回復薬を使った！ HP が 0 回復した！"
+    },
+    {
+      "t": 43,
+      "type": "player",
+      "player": "アキラ",
+      "action": "use_item_error",
+      "detail": {
+        "itemId": "ether-001",
+        "code": "ITEM_NOT_OWNED"
+      },
+      "text": "魔力の水 → 未所持"
+    },
+    {
+      "t": 43,
+      "type": "section",
+      "text": "12. Chat"
+    },
+    {
+      "t": 253,
+      "type": "player",
+      "player": "アキラ",
+      "action": "chat_send",
+      "detail": {
+        "text": "Hello!",
+        "channel": "global"
+      },
+      "text": "チャット送信: \"Hello!\""
+    },
+    {
+      "t": 253,
+      "type": "player",
+      "player": "ミサキ",
+      "action": "chat_receive",
+      "detail": {
+        "sender": "アキラ",
+        "text": "Hello!",
+        "channel": "global"
+      },
+      "text": "チャット受信: アキラ: Hello!"
+    },
+    {
+      "t": 257,
+      "type": "section",
+      "text": "13. Sell"
+    },
+    {
+      "t": 258,
+      "type": "player",
+      "player": "アキラ",
+      "action": "shop_sell",
+      "detail": {
+        "itemId": "potion-001",
+        "quantity": 1,
+        "gold": 60
+      },
+      "text": "回復薬を売却 → Gold: 60G"
+    },
+    {
+      "t": 258,
+      "type": "section",
+      "text": "Done"
+    },
+    {
+      "t": 258,
+      "type": "system",
+      "action": "test_complete",
+      "text": "全フロー完了"
+    }
+  ]
+}
