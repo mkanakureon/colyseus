@@ -1,7 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const LOGS_DIR = path.join(import.meta.dirname, "..", "logs");
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+
+const LOGS_DIR = path.join(__dirname, "..", "logs");
 
 export class TestLogger {
   private dir: string;

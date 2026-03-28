@@ -3,6 +3,13 @@ import { WorldState, NPCState } from "../schemas/WorldState.ts";
 import { PlayerState } from "../schemas/PlayerState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence, defaultPlayerData } from "../persistence/PlayerPersistence.ts";
+import { CharacterCreator } from "../systems/CharacterCreator.ts";
+import { EncounterManager } from "../systems/EncounterManager.ts";
+import { ItemManager } from "../systems/ItemManager.ts";
+import { ShopManager } from "../systems/ShopManager.ts";
+import { EquipmentManager } from "../systems/EquipmentManager.ts";
+import { QuestManager } from "../systems/QuestManager.ts";
+import { DeathManager } from "../systems/DeathManager.ts";
 import type { WorldMoveRequest, WorldInteractRequest, WorldExpressionRequest, WorldPoseRequest, AppError } from "../types/messages.ts";
 
 interface WorldRoomOptions {
@@ -16,7 +23,6 @@ interface WorldRoomOptions {
 }
 
 export class WorldRoom extends Room<WorldState> {
-  // Static DI — set before server.define()
   static authAdapterInstance: KaedevnAuthAdapter;
   static playerDBInstance: IPlayerPersistence;
 
@@ -25,15 +31,27 @@ export class WorldRoom extends Room<WorldState> {
   private adjacentZones: { direction: string; zoneId: string }[] = [];
   private npcDialogues = new Map<string, string[]>();
 
+  // Game systems
+  private charCreator!: CharacterCreator;
+  private encounterMgr = new EncounterManager();
+  private itemMgr = new ItemManager();
+  private shopMgr = new ShopManager();
+  private equipMgr = new EquipmentManager();
+  private questMgr = new QuestManager();
+  private deathMgr = new DeathManager();
+
+  // userId → sessionId mapping
+  private userToSession = new Map<string, string>();
+
   onCreate(options: WorldRoomOptions) {
     this.setState(new WorldState());
     this.state.zoneId = options.zoneId || "zone-001-village";
     this.state.zoneName = options.zoneName || "";
     this.maxClients = options.maxPlayers ?? 50;
-    // Static DI takes priority (client options can't contain class instances)
     this.authAdapter = WorldRoom.authAdapterInstance;
     this.playerDB = WorldRoom.playerDBInstance;
     this.adjacentZones = options.adjacentZones ?? [];
+    this.charCreator = new CharacterCreator(this.playerDB);
 
     // Load NPCs
     if (options.npcs) {
@@ -50,32 +68,42 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
 
-    // Message handlers
+    // Existing handlers
     this.onMessage("move", (client, data: WorldMoveRequest) => this.handleMove(client, data));
     this.onMessage("interact", (client, data: WorldInteractRequest) => this.handleInteract(client, data));
     this.onMessage("expression", (client, data: WorldExpressionRequest) => this.handleExpression(client, data));
     this.onMessage("pose", (client, data: WorldPoseRequest) => this.handlePose(client, data));
+
+    // New game system handlers
+    this.onMessage("create_character", (client, data) => this.handleCreateCharacter(client, data));
+    this.onMessage("explore", (client) => this.handleExplore(client));
+    this.onMessage("use_item", (client, data) => this.handleUseItem(client, data));
+    this.onMessage("shop_list", (client, data) => this.handleShopList(client, data));
+    this.onMessage("shop_buy", (client, data) => this.handleShopBuy(client, data));
+    this.onMessage("shop_sell", (client, data) => this.handleShopSell(client, data));
+    this.onMessage("equip", (client, data) => this.handleEquip(client, data));
+    this.onMessage("unequip", (client, data) => this.handleUnequip(client, data));
+    this.onMessage("quest_list", (client, data) => this.handleQuestList(client, data));
+    this.onMessage("quest_accept", (client, data) => this.handleQuestAccept(client, data));
+    this.onMessage("quest_report", (client, data) => this.handleQuestReport(client, data));
+    this.onMessage("quest_log", (client) => this.handleQuestLog(client));
+    this.onMessage("status", (client) => this.handleStatus(client));
+    this.onMessage("inventory", (client) => this.handleInventory(client));
   }
 
   async onAuth(client: Client, options: { token?: string }): Promise<KaedevnTokenPayload> {
     const token = options.token;
     if (!token) throw new Error("No token provided");
-
     const payload = this.authAdapter.verify(token);
     if (!payload) throw new Error("Invalid or expired token");
-
     return payload;
   }
 
   async onJoin(client: Client, options: any, auth: KaedevnTokenPayload) {
-    // Reject duplicate userId
     for (const [, existing] of this.state.players) {
-      if (existing.userId === auth.userId) {
-        throw new Error("Already joined");
-      }
+      if (existing.userId === auth.userId) throw new Error("Already joined");
     }
 
-    // Load or create player data
     let playerData = await this.playerDB.findByUserId(auth.userId);
     if (!playerData) {
       playerData = defaultPlayerData(auth.userId, auth.userId);
@@ -95,12 +123,25 @@ export class WorldRoom extends Room<WorldState> {
     player.level = playerData.level;
 
     this.state.players.set(client.sessionId, player);
+    this.userToSession.set(auth.userId, client.sessionId);
+
+    // Tell client if character creation is needed
+    if (!playerData.isCreated) {
+      client.send("need_character_creation", {});
+    } else {
+      client.send("welcome", {
+        name: playerData.name,
+        classType: playerData.classType,
+        level: playerData.level,
+        zoneId: this.state.zoneId,
+        zoneName: this.state.zoneName,
+      });
+    }
   }
 
   async onLeave(client: Client) {
     const player = this.state.players.get(client.sessionId);
     if (player) {
-      // Save to DB
       const existing = await this.playerDB.findByUserId(player.userId);
       if (existing) {
         existing.x = player.x;
@@ -110,13 +151,14 @@ export class WorldRoom extends Room<WorldState> {
         existing.lastLogin = Date.now();
         await this.playerDB.save(existing);
       }
+      this.userToSession.delete(player.userId);
       this.state.players.delete(client.sessionId);
     }
   }
 
-  async onDispose() {
-    // Save zone state if needed
-  }
+  async onDispose() {}
+
+  // ── Existing handlers ──
 
   private handleMove(client: Client, data: WorldMoveRequest) {
     const adjacent = this.adjacentZones.find(a => a.direction === data.direction);
@@ -134,22 +176,281 @@ export class WorldRoom extends Room<WorldState> {
       client.send("error", { code: "NPC_NOT_FOUND", message: "NPC が見つかりません" } satisfies AppError);
       return;
     }
-    // Send a random dialogue line (with inline tags)
     const text = dialogues[Math.floor(Math.random() * dialogues.length)];
     client.send("npc_dialogue", { npcId: npc.id, npcName: npc.name, text });
   }
 
   private handleExpression(client: Client, data: WorldExpressionRequest) {
     const player = this.state.players.get(client.sessionId);
-    if (player) {
-      player.expression = data.expression;
-    }
+    if (player) player.expression = data.expression;
   }
 
   private handlePose(client: Client, data: WorldPoseRequest) {
     const player = this.state.players.get(client.sessionId);
-    if (player) {
-      player.pose = data.pose;
+    if (player) player.pose = data.pose;
+  }
+
+  // ── New game system handlers ──
+
+  private async handleCreateCharacter(client: Client, data: { name: string; classType: string; gender?: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const result = await this.charCreator.create(player.userId, {
+      name: data.name,
+      classType: data.classType as any,
+      gender: data.gender as any,
+    });
+
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
     }
+
+    const pd = result.playerData!;
+    player.name = pd.name;
+    player.hp = pd.hp;
+    player.maxHp = pd.maxHp;
+    player.mp = pd.mp;
+    player.level = pd.level;
+
+    client.send("character_created", {
+      name: pd.name,
+      classType: pd.classType,
+      hp: pd.hp, maxHp: pd.maxHp,
+      mp: pd.mp, maxMp: pd.maxMp,
+      atk: pd.atk, def: pd.def, mag: pd.mag, spd: pd.spd,
+      gold: pd.gold,
+    });
+  }
+
+  private async handleExplore(client: Client) {
+    const result = this.encounterMgr.explore(this.state.zoneId);
+
+    if (result.type === "error") {
+      client.send("error", { code: result.code, message: result.message } satisfies AppError);
+      return;
+    }
+
+    if (result.type === "battle") {
+      client.send("encounter", {
+        type: "battle",
+        enemy: {
+          id: result.enemy.id,
+          name: result.enemy.name,
+          hp: result.enemy.hp,
+          atk: result.enemy.atk,
+          def: result.enemy.def,
+          exp: result.enemy.exp,
+          gold: result.enemy.gold,
+        },
+      });
+      return;
+    }
+
+    if (result.type === "item") {
+      // Add to player inventory
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        const pd = await this.playerDB.findByUserId(player.userId);
+        if (pd) {
+          this.itemMgr.addToInventory(pd, [{ itemId: result.itemId, name: result.itemName, quantity: result.quantity, type: "material" }]);
+          await this.playerDB.save(pd);
+
+          // Quest progress
+          const qProgress = this.questMgr.onItemCollected(pd, result.itemId);
+          if (qProgress.length > 0) {
+            client.send("quest_progress", qProgress);
+          }
+        }
+      }
+      client.send("encounter", { type: "item", itemId: result.itemId, itemName: result.itemName, quantity: result.quantity });
+      return;
+    }
+
+    client.send("encounter", { type: "nothing" });
+  }
+
+  private async handleUseItem(client: Client, data: { itemId: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.itemMgr.useItem(pd, data.itemId);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    // Sync state
+    player.hp = pd.hp;
+    player.mp = pd.mp;
+    await this.playerDB.save(pd);
+
+    client.send("item_used", { itemId: data.itemId, log: result.log, hp: pd.hp, mp: pd.mp });
+  }
+
+  private handleShopList(client: Client, data: { npcId: string }) {
+    const items = this.shopMgr.getShopItems(data.npcId);
+    if (!items) {
+      client.send("error", { code: "SHOP_NOT_FOUND", message: "Shop not found" } satisfies AppError);
+      return;
+    }
+    client.send("shop_items", { npcId: data.npcId, items });
+  }
+
+  private async handleShopBuy(client: Client, data: { npcId: string; itemId: string; quantity?: number }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.shopMgr.buy(pd, data.npcId, data.itemId, data.quantity ?? 1);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    client.send("shop_bought", { itemId: data.itemId, quantity: data.quantity ?? 1, gold: pd.gold });
+  }
+
+  private async handleShopSell(client: Client, data: { itemId: string; quantity?: number }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.shopMgr.sell(pd, data.itemId, data.quantity ?? 1);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    client.send("shop_sold", { itemId: data.itemId, quantity: data.quantity ?? 1, gold: pd.gold });
+  }
+
+  private async handleEquip(client: Client, data: { itemId: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.equipMgr.equip(pd, data.itemId);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    const stats = this.equipMgr.getEffectiveStats(pd);
+    client.send("equipped", { itemId: data.itemId, unequipped: result.unequipped, effectiveStats: stats });
+  }
+
+  private async handleUnequip(client: Client, data: { slot: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.equipMgr.unequip(pd, data.slot as any);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    const stats = this.equipMgr.getEffectiveStats(pd);
+    client.send("unequipped", { slot: data.slot, itemId: result.unequipped, effectiveStats: stats });
+  }
+
+  private async handleQuestList(client: Client, data: { npcId: string }) {
+    const { getQuestsByNpc } = await import("../data/quests.ts");
+    const quests = getQuestsByNpc(data.npcId);
+    client.send("quest_list", { npcId: data.npcId, quests: quests.map(q => ({ id: q.id, name: q.name, description: q.description })) });
+  }
+
+  private async handleQuestAccept(client: Client, data: { questId: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.questMgr.accept(pd, data.questId);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    client.send("quest_accepted", { questId: data.questId });
+  }
+
+  private async handleQuestReport(client: Client, data: { questId: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.questMgr.report(pd, data.questId);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    // Sync level/hp/mp after rewards
+    player.level = pd.level;
+    player.hp = pd.hp;
+    player.mp = pd.mp;
+    await this.playerDB.save(pd);
+
+    client.send("quest_completed", { questId: data.questId, rewards: result.rewards });
+  }
+
+  private async handleQuestLog(client: Client) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    client.send("quest_log", { quests: pd.questProgress });
+  }
+
+  private async handleStatus(client: Client) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const stats = this.equipMgr.getEffectiveStats(pd);
+    client.send("player_status", {
+      name: pd.name, classType: pd.classType, level: pd.level, exp: pd.exp,
+      hp: pd.hp, maxHp: pd.maxHp, mp: pd.mp, maxMp: pd.maxMp,
+      atk: stats.atk, def: stats.def, mag: stats.mag, spd: stats.spd,
+      gold: pd.gold,
+      equipment: pd.equipment,
+      zoneId: pd.zoneId,
+    });
+  }
+
+  private async handleInventory(client: Client) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    client.send("player_inventory", { inventory: pd.inventory, gold: pd.gold });
   }
 }
