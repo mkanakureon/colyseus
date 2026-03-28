@@ -123,7 +123,11 @@ class WorldRoom extends Room<WorldState> {
 }
 ```
 
-### StoryRoom — AI物語生成
+### StoryRoom — AI物語生成（未定：コスト要検証）
+
+> **注意**: Claude API のトークン課金 × 同時接続プレイヤー数でコストが爆発する可能性がある。
+> MMO で全NPC対話を AI 生成するとコストが見えないため、この Room は**保留**。
+> 代替案: 固定スクリプト（KSC）ベースのNPC + 限定的なAI対話（課金ユーザーのみ等）
 
 NPCとの会話やイベントで、AIがリアルタイムにストーリーを生成する。
 
@@ -241,7 +245,7 @@ class BattleRoom extends Room<BattleState> {
 | **ゾーンマップ** | ゾーン定義をDBに。隣接関係テーブル | 必須 |
 | **チャットシステム** | ChatRoom + Presence pub/sub | 必須 |
 | **インベントリ** | PostgreSQL テーブル + Room 状態同期 | 高 |
-| **NPC/AI対話** | Claude API + インラインタグ生成 | 高 |
+| **NPC/AI対話** | Claude API + インラインタグ生成。**コスト未定のため保留** | 未定 |
 | **クエストシステム** | KSC スクリプト + 進行状態DB | 中 |
 | **経済（通貨・取引）** | TradeRoom + DB トランザクション | 中 |
 | **ギルド/パーティ** | Presence でグループ管理 | 中 |
