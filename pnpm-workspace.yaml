@@ -6,6 +6,7 @@ packages:
   - packages/transport/*
   - packages/presence/*
   - packages/serializer/*
+  - mmo
 
 onlyBuiltDependencies:
   - '@biomejs/biome'
