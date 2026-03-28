@@ -167,7 +167,7 @@ describe("NPC Dialogue Patterns", function () {
     assert.ok(elder.quests.length >= 2, `Elder should have 2+ quests, got ${elder.quests.length}`);
   });
 
-  it("NPCD-E3: capital zone_info has NPCs without shop/quest", async () => {
+  it("NPCD-E3: guild receptionist has quests (she runs the quest board)", async () => {
     const sdk = new SDKClient(ENDPOINT);
     const zi = await new Promise<any>(resolve => {
       sdk.create("world", {
@@ -179,7 +179,21 @@ describe("NPC Dialogue Patterns", function () {
     const erika = zi.npcs.find((n: any) => n.id === "npc-guild");
     assert.ok(erika, "Erika should be in zone_info");
     assert.strictEqual(erika.shop, null, "Erika has no shop");
-    assert.strictEqual(erika.quests.length, 0, "Erika has no quests");
+    assert.ok(erika.quests.length >= 1, "Erika should have quests (guild quest board)");
+  });
+
+  it("NPCD-E4: blacksmith has shop", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const zi = await new Promise<any>(resolve => {
+      sdk.create("world", {
+        token: "browser-npcd-e4",
+        zoneId: "zone-004-capital",
+      }).then(room => { room.onMessage("zone_info", resolve); });
+    });
+
+    const blacksmith = zi.npcs.find((n: any) => n.id === "npc-blacksmith");
+    assert.ok(blacksmith, "Blacksmith should be in zone_info");
+    assert.ok(blacksmith.shop, "Blacksmith should have shop");
   });
 
   // ── パターン F: 交易広場のロイドはショップ+クエストあり ──

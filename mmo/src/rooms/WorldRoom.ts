@@ -162,11 +162,18 @@ export class WorldRoom extends Room<WorldState> {
         const target = this.gameData?.zones?.find((z: any) => z.id === a.zoneId);
         return { direction: a.direction, zoneId: a.zoneId, zoneName: target?.name || a.zoneId };
       }),
-      npcs: Array.from(this.state.npcs.values()).map(n => ({
-        id: n.id, name: n.name,
-        shop: this.gameData?.shops?.[n.id] ? n.id : null,
-        quests: Object.values(this.gameData?.quests || {}).filter((q: any) => q.giver === n.id).map((q: any) => q.id),
-      })),
+      npcs: Array.from(this.state.npcs.values()).map(n => {
+        // Quest refs: from zone NPC data OR from quest giver
+        const npcZoneDef = zoneDef?.npcs?.find((nd: any) => nd.id === n.id);
+        const zoneQuests = npcZoneDef?.quests || [];
+        const giverQuests = Object.values(this.gameData?.quests || {}).filter((q: any) => q.giver === n.id).map((q: any) => q.id);
+        const allQuests = [...new Set([...zoneQuests, ...giverQuests])];
+        return {
+          id: n.id, name: n.name,
+          shop: this.gameData?.shops?.[n.id] ? n.id : (npcZoneDef?.shop || null),
+          quests: allQuests,
+        };
+      }),
     });
 
     // Tell client if character creation is needed

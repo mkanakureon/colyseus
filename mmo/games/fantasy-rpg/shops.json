@@ -18,5 +18,16 @@
       "sword-iron",
       "armor-chain"
     ]
+  },
+  "npc-blacksmith": {
+    "npcId": "npc-blacksmith",
+    "npcName": "鍛冶屋ガルド",
+    "items": [
+      "sword-iron",
+      "sword-steel",
+      "armor-chain",
+      "armor-steel",
+      "shield-silver"
+    ]
   }
 }

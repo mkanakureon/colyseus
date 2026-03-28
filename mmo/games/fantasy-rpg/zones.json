@@ -130,7 +130,7 @@
         "dialogue": [
           "[e:normal]武器か？防具か？[click][e:smile]いい素材があれば何でも打つぜ。"
         ],
-        "shop": null,
+        "shop": "npc-blacksmith",
         "quests": []
       },
       {
@@ -144,7 +144,13 @@
           "[e:smile]冒険者ギルドへようこそ！[click]クエストボードを見ていきますか？"
         ],
         "shop": null,
-        "quests": []
+        "quests": [
+          "Q-001",
+          "Q-002",
+          "Q-003",
+          "Q-004",
+          "Q-005"
+        ]
       }
     ]
   },
