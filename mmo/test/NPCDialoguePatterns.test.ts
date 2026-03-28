@@ -222,7 +222,6 @@ describe("NPC Dialogue Patterns", function () {
       zoneId: "zone-001-village",
     });
     await new Promise(r => setTimeout(r, 200));
-    // No character creation → legacy fallback
 
     const resp = new Promise<any>(resolve => {
       room.onMessage("npc_dialogue", resolve);
@@ -232,6 +231,142 @@ describe("NPC Dialogue Patterns", function () {
 
     assert.strictEqual(result.npcName, "商人マリア");
     assert.strictEqual(result.npcId, "npc-merchant", "npcId must be in legacy dialogue for shop button");
+
+    await room.leave();
+  });
+
+  // ── パターン H: interact レスポンス + zone_info を組み合わせてボタン判定 ──
+  // ブラウザと同じロジック: interact → npcId を取得 → zone_info の npcs から shop/quests を参照
+
+  it("NPCD-H1: elder interact → zone_info lookup → quests button should appear", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: createTestToken({ userId: "npcd-h1" }),
+      zoneId: "zone-001-village",
+    });
+
+    // Get zone_info
+    const zi = await wait<any>(room, "zone_info");
+
+    // Create character for pool conversation
+    const created = wait<any>(room, "character_created");
+    room.send("create_character", { name: "H1テスト", classType: "warrior" });
+    await created;
+
+    // Interact
+    const resp = new Promise<any>(resolve => {
+      room.onMessage("npc_conversation", resolve);
+      room.onMessage("npc_dialogue", resolve);
+    });
+    room.send("interact", { targetId: "npc-elder" });
+    const dialogue = await resp;
+
+    // Browser logic: find NPC in zone_info by npcId from response
+    const npcId = dialogue.npcId;
+    assert.ok(npcId, "Response must have npcId");
+    const npcInfo = zi.npcs.find((n: any) => n.id === npcId);
+    assert.ok(npcInfo, `NPC ${npcId} must be in zone_info`);
+    assert.ok(npcInfo.quests.length > 0, "Elder should have quests → quest button appears");
+    assert.strictEqual(npcInfo.shop, null, "Elder has no shop → no shop button");
+
+    await room.leave();
+  });
+
+  it("NPCD-H2: merchant interact → zone_info lookup → shop button should appear", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: createTestToken({ userId: "npcd-h2" }),
+      zoneId: "zone-001-village",
+    });
+
+    const zi = await wait<any>(room, "zone_info");
+    await new Promise(r => setTimeout(r, 200));
+
+    const resp = new Promise<any>(resolve => {
+      room.onMessage("npc_conversation", resolve);
+      room.onMessage("npc_dialogue", resolve);
+    });
+    room.send("interact", { targetId: "npc-merchant" });
+    const dialogue = await resp;
+
+    const npcInfo = zi.npcs.find((n: any) => n.id === dialogue.npcId);
+    assert.ok(npcInfo, "Merchant must be in zone_info");
+    assert.ok(npcInfo.shop, "Merchant should have shop → shop button appears");
+
+    await room.leave();
+  });
+
+  it("NPCD-H3: guild receptionist interact → zone_info lookup → quest button should appear", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: createTestToken({ userId: "npcd-h3" }),
+      zoneId: "zone-004-capital",
+    });
+
+    const zi = await wait<any>(room, "zone_info");
+    await new Promise(r => setTimeout(r, 200));
+
+    const resp = new Promise<any>(resolve => {
+      room.onMessage("npc_conversation", resolve);
+      room.onMessage("npc_dialogue", resolve);
+    });
+    room.send("interact", { targetId: "npc-guild" });
+    const dialogue = await resp;
+
+    assert.ok(dialogue.npcId, "Response must have npcId");
+    const npcInfo = zi.npcs.find((n: any) => n.id === dialogue.npcId);
+    assert.ok(npcInfo, "Erika must be in zone_info");
+    assert.ok(npcInfo.quests.length > 0, "Erika should have quests → quest button appears");
+    assert.strictEqual(npcInfo.shop, null, "Erika has no shop");
+
+    await room.leave();
+  });
+
+  it("NPCD-H4: blacksmith interact → zone_info lookup → shop button should appear", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: createTestToken({ userId: "npcd-h4" }),
+      zoneId: "zone-004-capital",
+    });
+
+    const zi = await wait<any>(room, "zone_info");
+    await new Promise(r => setTimeout(r, 200));
+
+    const resp = new Promise<any>(resolve => {
+      room.onMessage("npc_conversation", resolve);
+      room.onMessage("npc_dialogue", resolve);
+    });
+    room.send("interact", { targetId: "npc-blacksmith" });
+    const dialogue = await resp;
+
+    const npcInfo = zi.npcs.find((n: any) => n.id === dialogue.npcId);
+    assert.ok(npcInfo, "Blacksmith must be in zone_info");
+    assert.ok(npcInfo.shop, "Blacksmith should have shop → shop button appears");
+
+    await room.leave();
+  });
+
+  it("NPCD-H5: trader interact → zone_info lookup → shop + quest buttons", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: createTestToken({ userId: "npcd-h5" }),
+      zoneId: "zone-003-market",
+    });
+
+    const zi = await wait<any>(room, "zone_info");
+    await new Promise(r => setTimeout(r, 200));
+
+    const resp = new Promise<any>(resolve => {
+      room.onMessage("npc_conversation", resolve);
+      room.onMessage("npc_dialogue", resolve);
+    });
+    room.send("interact", { targetId: "npc-trader" });
+    const dialogue = await resp;
+
+    const npcInfo = zi.npcs.find((n: any) => n.id === dialogue.npcId);
+    assert.ok(npcInfo, "Trader must be in zone_info");
+    assert.ok(npcInfo.shop, "Trader should have shop");
+    assert.ok(npcInfo.quests.length > 0, "Trader should have quests");
 
     await room.leave();
   });
