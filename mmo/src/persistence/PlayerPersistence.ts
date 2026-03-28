@@ -3,12 +3,19 @@ export interface PlayerData {
   name: string;
   gender: "female" | "male";
   preset: string;
+  classType: "warrior" | "mage" | "thief";
+  isCreated: boolean;
   zoneId: string;
   x: number;
   y: number;
   hp: number;
   maxHp: number;
   mp: number;
+  maxMp: number;
+  atk: number;
+  def: number;
+  mag: number;
+  spd: number;
   level: number;
   exp: number;
   gold: number;
@@ -42,12 +49,19 @@ export function defaultPlayerData(userId: string, name: string): PlayerData {
     name,
     gender: "female",
     preset: "hanako",
+    classType: "warrior",
+    isCreated: false,
     zoneId: "zone-001-village",
     x: 480,
     y: 360,
     hp: 100,
     maxHp: 100,
     mp: 50,
+    maxMp: 50,
+    atk: 10,
+    def: 5,
+    mag: 3,
+    spd: 8,
     level: 1,
     exp: 0,
     gold: 100,
