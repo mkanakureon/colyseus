@@ -9,6 +9,7 @@ import { EncounterManager } from "../systems/EncounterManager.ts";
 import { ItemManager } from "../systems/ItemManager.ts";
 import { QuestManager } from "../systems/QuestManager.ts";
 import { DeathManager } from "../systems/DeathManager.ts";
+import { TraceManager } from "../systems/TraceManager.ts";
 import type { BattleActionRequest, BattleActionResultEvent, BattlePhaseChangeEvent, BattleResultEvent, AppError } from "../types/messages.ts";
 
 interface BattleRoomOptions {
@@ -309,15 +310,31 @@ export class BattleRoom extends Room<BattleState> {
         if (!pd) continue;
 
         pd.gold += this.enemyGold;
-        if (drops.length > 0) this.itemMgr.addToInventory(pd, drops);
+        // Add signature to drops
+        const signedDrops = drops.map(d => ({ ...d, signature: `found by ${pd.name}` }));
+        if (signedDrops.length > 0) this.itemMgr.addToInventory(pd, signedDrops);
 
         const lvResult = this.levelSys.addExp(pd, this.enemyExp);
-        if (lvResult) levelUps[userId] = lvResult;
+        if (lvResult) {
+          levelUps[userId] = lvResult;
+          // Announce level milestone
+          try { (await import("./WorldRoom.ts")).WorldRoom.announcementInstance?.onLevelUp(pd.name, lvResult.newLevel); } catch {}
+        }
 
         const qProgress = this.questMgr.onEnemyDefeated(pd, this.enemyId);
         if (qProgress.length > 0) questProgress[userId] = qProgress;
 
+        // Chaos: count kills
+        try { (await import("./WorldRoom.ts")).WorldRoom.chaosInstance?.onEnemyKilled(); } catch {}
+
         await this.playerDB.save(pd);
+      }
+
+      // Boss kill announcement
+      if (this.isBoss) {
+        const firstName = [...this.clientToBattler.values()][0] || "?";
+        const pd = this.playerDB ? await this.playerDB.findByUserId(firstName) : null;
+        try { (await import("./WorldRoom.ts")).WorldRoom.announcementInstance?.onBossKill(pd?.name || firstName, enemy.name); } catch {}
       }
 
       const log = `[e:smile]${enemy.name}を倒した！[click]${this.enemyExp}EXP と ${this.enemyGold}ゴールドを獲得！`;
@@ -340,11 +357,13 @@ export class BattleRoom extends Room<BattleState> {
       this.state.phase = "result";
       this.state.result = "lose";
 
-      // Apply death penalty
+      // Apply death penalty + tombstone
       for (const [, userId] of this.clientToBattler) {
         if (!this.playerDB) continue;
         const pd = await this.playerDB.findByUserId(userId);
         if (pd) {
+          // Place tombstone
+          try { (await import("./WorldRoom.ts")).WorldRoom.traceInstance?.placeTombstone(pd.zoneId, pd.name, pd.level); } catch {}
           const penalty = this.deathMgr.applyPenalty(pd);
           await this.playerDB.save(pd);
         }

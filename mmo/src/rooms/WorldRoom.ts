@@ -14,6 +14,12 @@ import { EquipmentManager } from "../systems/EquipmentManager.ts";
 import { QuestManager } from "../systems/QuestManager.ts";
 import { DeathManager } from "../systems/DeathManager.ts";
 import { NPCConversationManager } from "../systems/NPCConversationManager.ts";
+import { AnnouncementManager } from "../systems/AnnouncementManager.ts";
+import { MessageBoardManager } from "../systems/MessageBoardManager.ts";
+import { TraceManager } from "../systems/TraceManager.ts";
+import { CampfireManager } from "../systems/CampfireManager.ts";
+import { ChaosManager } from "../systems/ChaosManager.ts";
+import { ReconstructionManager } from "../systems/ReconstructionManager.ts";
 import type { WorldMoveRequest, WorldInteractRequest, WorldExpressionRequest, WorldPoseRequest, AppError } from "../types/messages.ts";
 
 interface WorldRoomOptions {
@@ -46,6 +52,20 @@ export class WorldRoom extends Room<WorldState> {
   private questMgr!: QuestManager;
   private deathMgr!: DeathManager;
   private npcConvMgr!: NPCConversationManager;
+  private announceMgr!: AnnouncementManager;
+  private boardMgr!: MessageBoardManager;
+  private traceMgr!: TraceManager;
+  private campfireMgr!: CampfireManager;
+  private chaosMgr!: ChaosManager;
+  private reconMgr!: ReconstructionManager;
+
+  // Shared instances (static, shared across all rooms)
+  static announcementInstance: AnnouncementManager;
+  static boardInstance: MessageBoardManager;
+  static traceInstance: TraceManager;
+  static campfireInstance: CampfireManager;
+  static chaosInstance: ChaosManager;
+  static reconInstance: ReconstructionManager;
 
   // userId → sessionId mapping
   private userToSession = new Map<string, string>();
@@ -67,6 +87,26 @@ export class WorldRoom extends Room<WorldState> {
     this.questMgr = new QuestManager(this.gameData);
     this.deathMgr = new DeathManager(this.gameData);
     this.npcConvMgr = new NPCConversationManager(this.gameData);
+
+    // Shared systems (created once, reused across rooms)
+    if (!WorldRoom.announcementInstance) WorldRoom.announcementInstance = new AnnouncementManager(this.gameData);
+    if (!WorldRoom.boardInstance) WorldRoom.boardInstance = new MessageBoardManager(this.gameData);
+    if (!WorldRoom.traceInstance) WorldRoom.traceInstance = new TraceManager();
+    if (!WorldRoom.campfireInstance) WorldRoom.campfireInstance = new CampfireManager(this.gameData);
+    if (!WorldRoom.chaosInstance) WorldRoom.chaosInstance = new ChaosManager(this.gameData);
+    if (!WorldRoom.reconInstance) WorldRoom.reconInstance = new ReconstructionManager(this.gameData);
+
+    this.announceMgr = WorldRoom.announcementInstance;
+    this.boardMgr = WorldRoom.boardInstance;
+    this.traceMgr = WorldRoom.traceInstance;
+    this.campfireMgr = WorldRoom.campfireInstance;
+    this.chaosMgr = WorldRoom.chaosInstance;
+    this.reconMgr = WorldRoom.reconInstance;
+
+    // Announcement listener → broadcast to all clients in this room
+    this.announceMgr.onAnnouncement(ann => {
+      this.broadcast("announcement", ann);
+    });
 
     // Load zone data from GameData (fallback to options for backward compatibility)
     const zoneDef = this.gameData?.zones?.find((z: any) => z.id === this.state.zoneId);
@@ -107,6 +147,14 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("quest_log", (client) => this.handleQuestLog(client));
     this.onMessage("status", (client) => this.handleStatus(client));
     this.onMessage("inventory", (client) => this.handleInventory(client));
+
+    // Fun mechanics handlers
+    this.onMessage("board_post", (client, data) => this.handleBoardPost(client, data));
+    this.onMessage("board_read", (client) => this.handleBoardRead(client));
+    this.onMessage("pray", (client, data) => this.handlePray(client, data));
+    this.onMessage("recon_contribute", (client, data) => this.handleReconContribute(client, data));
+    this.onMessage("recon_progress", (client) => this.handleReconProgress(client));
+    this.onMessage("world_status", (client) => this.handleWorldStatus(client));
   }
 
   async onAuth(client: Client, options: { token?: string }): Promise<KaedevnTokenPayload> {
@@ -176,6 +224,28 @@ export class WorldRoom extends Room<WorldState> {
       }),
     });
 
+    // Send traces (footprints + tombstones) and board messages
+    const traces = this.traceMgr.getTraces(this.state.zoneId);
+    if (traces.footprints.length > 0 || traces.tombstones.length > 0) {
+      client.send("zone_traces", traces);
+    }
+    const boardMsgs = this.boardMgr.get(this.state.zoneId);
+    if (boardMsgs.length > 0) {
+      client.send("board_messages", { messages: boardMsgs });
+    }
+
+    // Campfire: start resting in safe zone
+    if (zoneDef?.isSafe) {
+      this.campfireMgr.startResting(client.sessionId);
+    }
+
+    // World status
+    client.send("world_status", {
+      chaosLevel: this.chaosMgr.getLevel(),
+      chaosEffects: this.chaosMgr.getEffects(),
+      announcements: this.announceMgr.getHistory(5),
+    });
+
     // Tell client if character creation is needed
     if (!playerData.isCreated) {
       client.send("need_character_creation", {});
@@ -191,6 +261,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   async onLeave(client: Client) {
+    this.campfireMgr.stopResting(client.sessionId);
     const player = this.state.players.get(client.sessionId);
     if (player) {
       const existing = await this.playerDB.findByUserId(player.userId);
@@ -217,6 +288,10 @@ export class WorldRoom extends Room<WorldState> {
       client.send("error", { code: "ZONE_NO_ADJACENT", message: `${data.direction} 方向には移動できません` } satisfies AppError);
       return;
     }
+    // Footprint + campfire reset
+    this.traceMgr.leaveFootprint(this.state.zoneId, this.state.players.get(client.sessionId)?.name || "?", data.direction);
+    this.campfireMgr.stopResting(client.sessionId);
+
     client.send("zone_change", { zoneId: adjacent.zoneId, zoneName: "" });
   }
 
@@ -553,5 +628,66 @@ export class WorldRoom extends Room<WorldState> {
     if (!pd) return;
 
     client.send("player_inventory", { inventory: pd.inventory, gold: pd.gold });
+  }
+
+  // ── Fun mechanics handlers ──
+
+  private handleBoardPost(client: Client, data: { text: string }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const result = this.boardMgr.post(this.state.zoneId, player.name, data.text);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+    // Broadcast updated board to all in zone
+    this.broadcast("board_messages", { messages: this.boardMgr.get(this.state.zoneId) });
+  }
+
+  private handleBoardRead(client: Client) {
+    client.send("board_messages", { messages: this.boardMgr.get(this.state.zoneId) });
+  }
+
+  private handlePray(client: Client, data: { index: number }) {
+    const result = this.traceMgr.pray(this.state.zoneId, data.index);
+    if (result) {
+      client.send("pray_result", { tombstone: result });
+    }
+  }
+
+  private async handleReconContribute(client: Client, data: { projectId: string; itemId: string; quantity: number }) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const pd = await this.playerDB.findByUserId(player.userId);
+    if (!pd) return;
+
+    const result = this.reconMgr.contribute(data.projectId, pd, data.itemId, data.quantity);
+    if (!result.success) {
+      client.send("error", { code: result.error!, message: result.error! } satisfies AppError);
+      return;
+    }
+
+    await this.playerDB.save(pd);
+    const progress = this.reconMgr.getProgress(data.projectId);
+    client.send("recon_progress", progress);
+
+    // Announce if completed
+    if (progress?.complete) {
+      this.announceMgr.onQuestComplete(player.name, `復興: ${progress.name}`);
+    }
+  }
+
+  private handleReconProgress(client: Client) {
+    const projects = this.reconMgr.getProjects();
+    const progresses = projects.map(p => this.reconMgr.getProgress(p.id)).filter(Boolean);
+    client.send("recon_all_progress", { projects: progresses });
+  }
+
+  private handleWorldStatus(client: Client) {
+    client.send("world_status", {
+      chaosLevel: this.chaosMgr.getLevel(),
+      chaosEffects: this.chaosMgr.getEffects(),
+      announcements: this.announceMgr.getHistory(5),
+    });
   }
 }
