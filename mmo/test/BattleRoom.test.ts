@@ -1,27 +1,20 @@
 import assert from "assert";
 import { Client as SDKClient } from "@colyseus/sdk";
-import { LocalDriver, matchMaker, Server, LocalPresence } from "@colyseus/core";
-import { BattleRoom } from "../src/rooms/BattleRoom.ts";
-import { KaedevnAuthAdapter } from "../src/auth/KaedevnAuthAdapter.ts";
+import { createMMOServer } from "../src/createServer.ts";
 import { createTestToken, TEST_JWT_SECRET } from "./mocks/kaedevn-auth.ts";
 
 const TEST_PORT = 9569;
 const TEST_ENDPOINT = `ws://localhost:${TEST_PORT}`;
 
 describe("BattleRoom", () => {
-  const presence = new LocalPresence();
-  const driver = new LocalDriver();
-  const server = new Server({ greet: false, presence, driver });
-  const authAdapter = new KaedevnAuthAdapter(TEST_JWT_SECRET);
+  let mmo: ReturnType<typeof createMMOServer>;
 
   before(async () => {
-    matchMaker.setup(presence, driver);
-    BattleRoom.authAdapterInstance = authAdapter;
-    server.define("battle", BattleRoom);
-    await server.listen(TEST_PORT);
+    mmo = createMMOServer({ jwtSecret: TEST_JWT_SECRET });
+    await mmo.listen(TEST_PORT);
   });
 
-  after(() => server.transport.shutdown());
+  after(() => mmo.shutdown());
 
   const enemyOpts = {
     enemyName: "スライム",

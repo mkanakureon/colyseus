@@ -1,8 +1,6 @@
 import assert from "assert";
 import { Client as SDKClient } from "@colyseus/sdk";
-import { LocalDriver, matchMaker, Server, LocalPresence } from "@colyseus/core";
-import { WorldRoom } from "../src/rooms/WorldRoom.ts";
-import { KaedevnAuthAdapter } from "../src/auth/KaedevnAuthAdapter.ts";
+import { createMMOServer } from "../src/createServer.ts";
 import { InMemoryPlayerDB, defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
 import { createTestToken, createExpiredToken, createSuspendedToken, createGuestToken, TEST_JWT_SECRET } from "./mocks/kaedevn-auth.ts";
 import { TEST_ZONES } from "./mocks/zone-map.ts";
@@ -11,23 +9,16 @@ const TEST_PORT = 9567;
 const TEST_ENDPOINT = `ws://localhost:${TEST_PORT}`;
 
 describe("WorldRoom", () => {
-  const presence = new LocalPresence();
-  const driver = new LocalDriver();
-  const server = new Server({ greet: false, presence, driver });
-  const authAdapter = new KaedevnAuthAdapter(TEST_JWT_SECRET);
   const playerDB = new InMemoryPlayerDB();
+  let mmo: ReturnType<typeof createMMOServer>;
   const village = TEST_ZONES[0]; // zone-001-village
 
   before(async () => {
-    matchMaker.setup(presence, driver);
-    // Pass authAdapter and playerDB via Room metadata injection
-    WorldRoom.authAdapterInstance = authAdapter;
-    WorldRoom.playerDBInstance = playerDB;
-    server.define("world", WorldRoom);
-    await server.listen(TEST_PORT);
+    mmo = createMMOServer({ jwtSecret: TEST_JWT_SECRET, playerDB });
+    await mmo.listen(TEST_PORT);
   });
 
-  after(() => server.transport.shutdown());
+  after(() => mmo.shutdown());
 
   beforeEach(() => playerDB.clear());
 
@@ -42,8 +33,6 @@ describe("WorldRoom", () => {
       zoneName: village.name,
       npcs: village.npcs,
       adjacentZones: village.adjacentZones,
-      authAdapter,
-      playerDB,
     });
     assert.ok(room.sessionId);
     assert.ok(room.state);
@@ -58,8 +47,6 @@ describe("WorldRoom", () => {
         token,
         zoneId: village.id,
         zoneName: village.name,
-        authAdapter,
-        playerDB,
       });
       assert.fail("Should have thrown");
     } catch (e: any) {
@@ -75,8 +62,6 @@ describe("WorldRoom", () => {
         token,
         zoneId: village.id,
         zoneName: village.name,
-        authAdapter,
-        playerDB,
       });
       assert.fail("Should have thrown");
     } catch (e: any) {
@@ -91,8 +76,6 @@ describe("WorldRoom", () => {
       token,
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     });
     assert.ok(room.sessionId);
     await room.leave();
@@ -104,8 +87,6 @@ describe("WorldRoom", () => {
       await client.joinOrCreate("world", {
         zoneId: village.id,
         zoneName: village.name,
-        authAdapter,
-        playerDB,
       });
       assert.fail("Should have thrown");
     } catch (e: any) {
@@ -122,8 +103,6 @@ describe("WorldRoom", () => {
       token,
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     });
 
     // Wait for state sync
@@ -145,8 +124,6 @@ describe("WorldRoom", () => {
       token,
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     });
 
     await new Promise(r => setTimeout(r, 200));
@@ -162,8 +139,6 @@ describe("WorldRoom", () => {
       token,
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     });
 
     const client2 = new SDKClient(TEST_ENDPOINT);
@@ -172,8 +147,6 @@ describe("WorldRoom", () => {
         token,
         zoneId: village.id,
         zoneName: village.name,
-        authAdapter,
-        playerDB,
       });
       assert.fail("Should have thrown for duplicate userId");
     } catch (e: any) {
@@ -188,7 +161,7 @@ describe("WorldRoom", () => {
     const client2 = new SDKClient(TEST_ENDPOINT);
     const token1 = createTestToken({ userId: "user-leave-01a" });
     const token2 = createTestToken({ userId: "user-leave-01b" });
-    const roomOpts = { zoneId: village.id, zoneName: village.name, authAdapter, playerDB };
+    const roomOpts = { zoneId: village.id, zoneName: village.name };
 
     const room1 = await client1.joinOrCreate("world", { token: token1, ...roomOpts });
     const room2 = await client2.join("world", { token: token2, ...roomOpts });
@@ -218,8 +191,6 @@ describe("WorldRoom", () => {
       token,
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     });
 
     await new Promise(r => setTimeout(r, 200));
@@ -242,8 +213,6 @@ describe("WorldRoom", () => {
       zoneId: village.id,
       zoneName: village.name,
       adjacentZones: village.adjacentZones,
-      authAdapter,
-      playerDB,
     });
 
     const zoneChange = new Promise<any>((resolve) => {
@@ -264,8 +233,6 @@ describe("WorldRoom", () => {
       zoneId: village.id,
       zoneName: village.name,
       adjacentZones: village.adjacentZones,
-      authAdapter,
-      playerDB,
     });
 
     const error = new Promise<any>((resolve) => {
@@ -289,8 +256,6 @@ describe("WorldRoom", () => {
       zoneName: village.name,
       npcs: village.npcs,
       adjacentZones: village.adjacentZones,
-      authAdapter,
-      playerDB,
     });
 
     const dialogue = new Promise<any>((resolve) => {
@@ -313,8 +278,6 @@ describe("WorldRoom", () => {
       zoneName: village.name,
       npcs: village.npcs,
       adjacentZones: village.adjacentZones,
-      authAdapter,
-      playerDB,
     });
 
     const dialogue = new Promise<any>((resolve) => {
@@ -336,8 +299,6 @@ describe("WorldRoom", () => {
       zoneId: village.id,
       zoneName: village.name,
       npcs: village.npcs,
-      authAdapter,
-      playerDB,
     });
 
     const error = new Promise<any>((resolve) => {
@@ -361,8 +322,6 @@ describe("WorldRoom", () => {
     const roomOpts = {
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     };
 
     const room1 = await client1.joinOrCreate("world", { token: token1, ...roomOpts });
@@ -392,8 +351,6 @@ describe("WorldRoom", () => {
     const roomOpts = {
       zoneId: village.id,
       zoneName: village.name,
-      authAdapter,
-      playerDB,
     };
 
     const room1 = await client1.joinOrCreate("world", { token: token1, ...roomOpts });

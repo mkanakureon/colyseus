@@ -7,12 +7,7 @@
  */
 import assert from "assert";
 import { Client as SDKClient } from "@colyseus/sdk";
-import { LocalDriver, matchMaker, Server, LocalPresence } from "@colyseus/core";
-import { WorldRoom } from "../src/rooms/WorldRoom.ts";
-import { ChatRoom } from "../src/rooms/ChatRoom.ts";
-import { BattleRoom } from "../src/rooms/BattleRoom.ts";
-import { TradeRoom } from "../src/rooms/TradeRoom.ts";
-import { KaedevnAuthAdapter } from "../src/auth/KaedevnAuthAdapter.ts";
+import { createMMOServer } from "../src/createServer.ts";
 import { InMemoryPlayerDB, defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
 import { createTestToken, TEST_JWT_SECRET } from "./mocks/kaedevn-auth.ts";
 import { TEST_ZONES } from "./mocks/zone-map.ts";
@@ -62,11 +57,8 @@ class GameLog {
 describe("Playthrough E2E — テキスト型MMOプレイスルー", function () {
   this.timeout(30000);
 
-  const presence = new LocalPresence();
-  const driver = new LocalDriver();
-  const server = new Server({ greet: false, presence, driver });
-  const authAdapter = new KaedevnAuthAdapter(TEST_JWT_SECRET);
   const playerDB = new InMemoryPlayerDB();
+  let mmo: ReturnType<typeof createMMOServer>;
   const log = new GameLog();
 
   const village = TEST_ZONES[0]; // はじまりの村
@@ -74,19 +66,8 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
   const market = TEST_ZONES[2]; // 交易広場
 
   before(async () => {
-    matchMaker.setup(presence, driver);
-    WorldRoom.authAdapterInstance = authAdapter;
-    WorldRoom.playerDBInstance = playerDB;
-    ChatRoom.authAdapterInstance = authAdapter;
-    BattleRoom.authAdapterInstance = authAdapter;
-    TradeRoom.authAdapterInstance = authAdapter;
-    TradeRoom.playerDBInstance = playerDB;
-
-    server.define("world", WorldRoom);
-    server.define("chat", ChatRoom);
-    server.define("battle", BattleRoom);
-    server.define("trade", TradeRoom);
-    await server.listen(TEST_PORT);
+    mmo = createMMOServer({ jwtSecret: TEST_JWT_SECRET, playerDB });
+    await mmo.listen(TEST_PORT);
   });
 
   after(function () {
@@ -96,7 +77,7 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
     console.log("╚══════════════════════════════════════╝");
     console.log(log.dump());
     console.log("\n══════════════════════════════════════\n");
-    server.transport.shutdown();
+    mmo.shutdown();
   });
 
   beforeEach(() => playerDB.clear());
@@ -116,7 +97,6 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
       token: createTestToken({ userId: "akira" }),
       zoneId: village.id, zoneName: village.name,
       npcs: village.npcs, adjacentZones: village.adjacentZones,
-      authAdapter, playerDB,
     });
     await new Promise(r => setTimeout(r, 200));
     log.system("アキラが「はじまりの村」にログインした");
@@ -131,7 +111,6 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
       token: createTestToken({ userId: "misaki" }),
       zoneId: village.id, zoneName: village.name,
       npcs: village.npcs, adjacentZones: village.adjacentZones,
-      authAdapter, playerDB,
     });
     await new Promise(r => setTimeout(r, 300));
     log.system("ミサキが「はじまりの村」にログインした");
@@ -219,7 +198,6 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
       token: createTestToken({ userId: "akira-battle" }),
       zoneId: village.id, zoneName: village.name,
       adjacentZones: village.adjacentZones,
-      authAdapter, playerDB,
     });
     await new Promise(r => setTimeout(r, 200));
     log.system("アキラは「はじまりの村」にいる");

@@ -1,30 +1,20 @@
 import assert from "assert";
 import { Client as SDKClient } from "@colyseus/sdk";
-import { LocalDriver, matchMaker, Server, LocalPresence } from "@colyseus/core";
-import { TradeRoom } from "../src/rooms/TradeRoom.ts";
-import { KaedevnAuthAdapter } from "../src/auth/KaedevnAuthAdapter.ts";
-import { InMemoryPlayerDB } from "../src/persistence/PlayerPersistence.ts";
+import { createMMOServer } from "../src/createServer.ts";
 import { createTestToken, TEST_JWT_SECRET } from "./mocks/kaedevn-auth.ts";
 
 const TEST_PORT = 9570;
 const TEST_ENDPOINT = `ws://localhost:${TEST_PORT}`;
 
 describe("TradeRoom", () => {
-  const presence = new LocalPresence();
-  const driver = new LocalDriver();
-  const server = new Server({ greet: false, presence, driver });
-  const authAdapter = new KaedevnAuthAdapter(TEST_JWT_SECRET);
-  const playerDB = new InMemoryPlayerDB();
+  let mmo: ReturnType<typeof createMMOServer>;
 
   before(async () => {
-    matchMaker.setup(presence, driver);
-    TradeRoom.authAdapterInstance = authAdapter;
-    TradeRoom.playerDBInstance = playerDB;
-    server.define("trade", TradeRoom);
-    await server.listen(TEST_PORT);
+    mmo = createMMOServer({ jwtSecret: TEST_JWT_SECRET });
+    await mmo.listen(TEST_PORT);
   });
 
-  after(() => server.transport.shutdown());
+  after(() => mmo.shutdown());
 
   const testInventory = [
     { itemId: "potion-001", name: "回復薬", quantity: 5 },

@@ -6,11 +6,7 @@
  */
 import assert from "assert";
 import { Client as SDKClient } from "@colyseus/sdk";
-import { LocalDriver, matchMaker, Server, LocalPresence } from "@colyseus/core";
-import { WorldRoom } from "../src/rooms/WorldRoom.ts";
-import { ChatRoom } from "../src/rooms/ChatRoom.ts";
-import { BattleRoom } from "../src/rooms/BattleRoom.ts";
-import { KaedevnAuthAdapter } from "../src/auth/KaedevnAuthAdapter.ts";
+import { createMMOServer, type MMOServer } from "../src/createServer.ts";
 import { InMemoryPlayerDB } from "../src/persistence/PlayerPersistence.ts";
 import { createTestToken, TEST_JWT_SECRET } from "./mocks/kaedevn-auth.ts";
 import { TEST_ZONES } from "./mocks/zone-map.ts";
@@ -33,29 +29,17 @@ function wait<T>(room: any, type: string, ms = 3000, filter?: (m: T) => boolean)
 describe("Integration E2E — Full Game Flow", function () {
   this.timeout(30000);
 
-  const presence = new LocalPresence();
-  const driver = new LocalDriver();
-  const server = new Server({ greet: false, presence, driver });
-  const authAdapter = new KaedevnAuthAdapter(TEST_JWT_SECRET);
   const playerDB = new InMemoryPlayerDB();
+  let mmo: MMOServer;
   const village = TEST_ZONES[0];
-  const forest = TEST_ZONES[1]; // zone-002-forest (danger zone)
+  const forest = TEST_ZONES[1];
 
   before(async () => {
-    matchMaker.setup(presence, driver);
-    WorldRoom.authAdapterInstance = authAdapter;
-    WorldRoom.playerDBInstance = playerDB;
-    ChatRoom.authAdapterInstance = authAdapter;
-    BattleRoom.authAdapterInstance = authAdapter;
-    BattleRoom.playerDBInstance = playerDB;
-    server.define("world", WorldRoom);
-    server.define("world_forest", WorldRoom);
-    server.define("chat", ChatRoom);
-    server.define("battle", BattleRoom);
-    await server.listen(TEST_PORT);
+    mmo = createMMOServer({ jwtSecret: TEST_JWT_SECRET, playerDB });
+    await mmo.listen(TEST_PORT);
   });
 
-  after(() => server.transport.shutdown());
+  after(() => mmo.shutdown());
   beforeEach(() => playerDB.clear());
 
   it("full game: create → shop → equip → explore → battle → level up → drops → quest → death → respawn", async () => {
