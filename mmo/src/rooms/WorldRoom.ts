@@ -459,8 +459,23 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private async handleQuestList(client: Client, data: { npcId: string }) {
-    const quests = getQuestsByNpc(this.gameData.quests, data.npcId);
-    client.send("quest_list", { npcId: data.npcId, quests: quests.map(q => ({ id: q.id, name: q.name, description: q.description })) });
+    // Quests from giver + quests referenced in zone NPC data
+    const giverQuests = getQuestsByNpc(this.gameData.quests, data.npcId);
+    const zoneDef = this.gameData?.zones?.find((z: any) => z.id === this.state.zoneId);
+    const npcDef = zoneDef?.npcs?.find((n: any) => n.id === data.npcId);
+    const zoneQuestIds = npcDef?.quests || [];
+
+    const allQuestIds = new Set([
+      ...giverQuests.map(q => q.id),
+      ...zoneQuestIds,
+    ]);
+
+    const quests = [...allQuestIds]
+      .map(id => this.gameData.quests[id])
+      .filter(Boolean)
+      .map(q => ({ id: q.id, name: q.name, description: q.description }));
+
+    client.send("quest_list", { npcId: data.npcId, quests });
   }
 
   private async handleQuestAccept(client: Client, data: { questId: string }) {

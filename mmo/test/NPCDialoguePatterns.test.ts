@@ -346,6 +346,40 @@ describe("NPC Dialogue Patterns", function () {
     await room.leave();
   });
 
+  // ── パターン I: quest_list メッセージで実際にクエストが返るか ──
+
+  it("NPCD-I1: quest_list for guild receptionist returns quests", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: "browser-npcd-i1",
+      zoneId: "zone-004-capital",
+    });
+    await new Promise(r => setTimeout(r, 200));
+
+    const ql = wait<any>(room, "quest_list");
+    room.send("quest_list", { npcId: "npc-guild" });
+    const result = await ql;
+
+    assert.ok(result.quests.length > 0, `Erika quest_list should return quests, got ${result.quests.length}`);
+    await room.leave();
+  });
+
+  it("NPCD-I2: quest_list for elder returns quests", async () => {
+    const sdk = new SDKClient(ENDPOINT);
+    const room = await sdk.create("world", {
+      token: "browser-npcd-i2",
+      zoneId: "zone-001-village",
+    });
+    await new Promise(r => setTimeout(r, 200));
+
+    const ql = wait<any>(room, "quest_list");
+    room.send("quest_list", { npcId: "npc-elder" });
+    const result = await ql;
+
+    assert.ok(result.quests.length >= 2, `Elder should have 2+ quests, got ${result.quests.length}`);
+    await room.leave();
+  });
+
   it("NPCD-H5: trader interact → zone_info lookup → shop + quest buttons", async () => {
     const sdk = new SDKClient(ENDPOINT);
     const room = await sdk.create("world", {
