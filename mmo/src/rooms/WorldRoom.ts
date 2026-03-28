@@ -58,8 +58,6 @@ export class WorldRoom extends Room<WorldState> {
     this.authAdapter = WorldRoom.authAdapterInstance;
     this.playerDB = WorldRoom.playerDBInstance;
     this.gameData = WorldRoom.gameDataInstance;
-    this.adjacentZones = options.adjacentZones ?? [];
-
     // Systems with GameData injection
     this.charCreator = new CharacterCreator(this.playerDB, this.gameData);
     this.encounterMgr = new EncounterManager(this.gameData);
@@ -70,19 +68,22 @@ export class WorldRoom extends Room<WorldState> {
     this.deathMgr = new DeathManager(this.gameData);
     this.npcConvMgr = new NPCConversationManager(this.gameData);
 
+    // Load zone data from GameData (fallback to options for backward compatibility)
+    const zoneDef = this.gameData?.zones?.find((z: any) => z.id === this.state.zoneId);
+    const npcs = options.npcs ?? zoneDef?.npcs ?? [];
+    this.adjacentZones = options.adjacentZones ?? zoneDef?.adjacentZones ?? [];
+
     // Load NPCs
-    if (options.npcs) {
-      for (const npc of options.npcs) {
-        const npcState = new NPCState();
-        npcState.id = npc.id;
-        npcState.name = npc.name;
-        npcState.expression = npc.expression;
-        npcState.pose = npc.pose;
-        npcState.x = npc.x;
-        npcState.y = npc.y;
-        this.state.npcs.set(npc.id, npcState);
-        this.npcDialogues.set(npc.id, npc.dialogue);
-      }
+    for (const npc of npcs) {
+      const npcState = new NPCState();
+      npcState.id = npc.id;
+      npcState.name = npc.name;
+      npcState.expression = npc.expression || "normal";
+      npcState.pose = npc.pose || "standing";
+      npcState.x = npc.x || 0;
+      npcState.y = npc.y || 0;
+      this.state.npcs.set(npc.id, npcState);
+      if (npc.dialogue) this.npcDialogues.set(npc.id, npc.dialogue);
     }
 
     // Existing handlers
@@ -111,9 +112,17 @@ export class WorldRoom extends Room<WorldState> {
   async onAuth(client: Client, options: { token?: string }): Promise<KaedevnTokenPayload> {
     const token = options.token;
     if (!token) throw new Error("No token provided");
+
+    // Try JWT verification first
     const payload = this.authAdapter.verify(token);
-    if (!payload) throw new Error("Invalid or expired token");
-    return payload;
+    if (payload) return payload;
+
+    // Dev fallback: use token string as userId (for browser client)
+    if (token.startsWith("browser-") || token.startsWith("cli-")) {
+      return { userId: token, role: "user", status: "active" };
+    }
+
+    throw new Error("Invalid or expired token");
   }
 
   async onJoin(client: Client, options: any, auth: KaedevnTokenPayload) {
@@ -194,12 +203,11 @@ export class WorldRoom extends Room<WorldState> {
     }
 
     // Try conversation pool system first
-    const pool = this.gameData.npcConversations?.[data.targetId];
-    if (pool && (pool.daily?.length > 0 || pool.contextual?.length > 0 || pool.special?.length > 0)) {
-      const player = this.state.players.get(client.sessionId);
-      if (!player) return;
-      const pd = await this.playerDB.findByUserId(player.userId);
-      if (!pd) return;
+    const pool = this.gameData?.npcConversations?.[data.targetId];
+    const player = this.state.players.get(client.sessionId);
+    const pd = player ? await this.playerDB.findByUserId(player.userId) : null;
+
+    if (pool && pd && (pool.daily?.length > 0 || pool.contextual?.length > 0 || pool.special?.length > 0)) {
 
       const memory = this.npcConvMgr.getMemory(pd, data.targetId);
       const selection = this.npcConvMgr.selectConversation(pool, memory, pd);

@@ -1,11 +1,11 @@
 /**
- * Text MMO Browser Client
- * Vanilla JS, no build step. Uses Colyseus SDK from CDN.
+ * Text MMO Browser Client v2
+ *
+ * All message handlers registered ONCE in setupWorldRoom().
+ * Screen rendering is driven by state, not by onMessage callbacks.
  */
 
-// ── Config ──
 const ENDPOINT = `ws://${location.hostname}:3001`;
-const JWT_SECRET = "mmo-dev-secret"; // dev only — prod uses server-side auth
 
 // ── DOM ──
 const $ = id => document.getElementById(id);
@@ -22,761 +22,520 @@ let client = null;
 let worldRoom = null;
 let chatRoom = null;
 let battleRoom = null;
-let currentScreen = "login";
-let playerData = {};
+let screen = "login";
+let player = { name: "", level: 1, hp: 100, maxHp: 100, mp: 50, maxMp: 50 };
+let zoneInfo = null;
 let chatLog = [];
-let dialogueNodes = [];
-let dialogueIndex = 0;
+let sysLog = [];
+let dialogueData = null;
+let dialogueIdx = 0;
 let battleLog = [];
+let shopData = null;
+let statusCache = null;
+let invCache = null;
+let questCache = null;
 
 // ── Helpers ──
-function html(el, content) { el.innerHTML = content; }
-function show(el) { el.classList.remove("hidden"); el.classList.remove("full"); }
-function hide(el) { el.classList.add("hidden"); }
-function fullLeft() { leftPanel.classList.add("full"); hide(rightPanel); }
+function h(el, s) { el.innerHTML = s; }
+function showRight() { rightPanel.classList.remove("hidden"); leftPanel.classList.remove("full"); }
+function hideRight() { rightPanel.classList.add("hidden"); leftPanel.classList.add("full"); }
 
-function hpBar(current, max, width = 10) {
-  const ratio = max > 0 ? current / max : 0;
-  const filled = Math.round(ratio * width);
-  const cls = ratio > 0.7 ? "fill" : ratio > 0.3 ? "fill mid" : "fill low";
-  return `<span class="hp-bar"><span class="${cls}">${"#".repeat(filled)}</span><span class="empty">${"-".repeat(width - filled)}</span></span> ${current}/${max}`;
+function hpBar(cur, max, w = 10) {
+  const r = max > 0 ? cur / max : 0;
+  const f = Math.round(r * w);
+  const c = r > 0.7 ? "fill" : r > 0.3 ? "fill mid" : "fill low";
+  return `<span class="hp-bar"><span class="${c}">${"#".repeat(f)}</span><span class="empty">${"-".repeat(w - f)}</span></span> ${cur}/${max}`;
 }
+
+function strip(t) {
+  return (t||"").replace(/\[e:\w+\]/g,"").replace(/\[p:\w+\]/g,"").replace(/\[click\]/g,"").replace(/\[wait:\d+\]/g,"").replace(/\[t\]|\[w\]|\[s\]/g,"");
+}
+
+const EMO = { happy:"笑顔", sad:"悲しみ", angry:"怒り", surprised:"驚き", neutral:"" };
 
 function setChoices(items) {
   textInput.classList.remove("visible");
-  html(choicesEl, items.map(([key, label, action]) =>
-    `<button class="choice-btn" data-action="${action || key}">[${key}] ${label}</button>`
+  textInput.onkeydown = null;
+  h(choicesEl, items.map(([k,l,a]) =>
+    `<button class="choice-btn" data-a="${a||k}">[${k}] ${l}</button>`
   ).join(""));
-  choicesEl.querySelectorAll(".choice-btn").forEach(btn => {
-    btn.onclick = () => handleChoice(btn.dataset.action);
-  });
+  choicesEl.querySelectorAll(".choice-btn").forEach(b => b.onclick = () => act(b.dataset.a));
 }
 
-function showTextInput(placeholder, onSubmit) {
-  html(choicesEl, "");
+function showInput(ph, fn) {
+  h(choicesEl, `<button class="choice-btn" data-a="back">[0] 戻る</button>`);
+  choicesEl.querySelector(".choice-btn").onclick = () => act("back");
   textInput.classList.add("visible");
-  textInput.placeholder = placeholder;
+  textInput.placeholder = ph;
   textInput.value = "";
   textInput.focus();
-  textInput.onkeydown = e => {
-    if (e.key === "Enter" && textInput.value.trim()) {
-      onSubmit(textInput.value.trim());
-      textInput.value = "";
-    }
-  };
+  textInput.onkeydown = e => { if (e.key === "Enter" && textInput.value.trim()) { fn(textInput.value.trim()); textInput.value = ""; } };
 }
 
-function updateHeader() {
-  if (playerData.name) {
-    hdrPlayer.textContent = `${playerData.name} Lv.${playerData.level || 1}`;
-    const hp = playerData.hp || 0;
-    const maxHp = playerData.maxHp || 100;
-    hdrHp.textContent = `HP:${hp}/${maxHp} MP:${playerData.mp || 0}`;
-    hdrHp.className = hp / maxHp < 0.3 ? "hp low" : "hp";
+function updHeader() {
+  hdrPlayer.textContent = player.name ? `${player.name} Lv.${player.level}` : "---";
+  hdrHp.textContent = player.name ? `HP:${player.hp}/${player.maxHp} MP:${player.mp}/${player.maxMp}` : "";
+  hdrHp.className = (player.hp / player.maxHp < 0.3) ? "hp low" : "hp";
+  hdrZone.textContent = player.zoneName || "";
+}
+
+function sysMsg(t) { sysLog.push(t); if (sysLog.length > 15) sysLog.shift(); }
+
+// ── Render functions (pure, no onMessage) ──
+
+function render() {
+  updHeader();
+  switch (screen) {
+    case "login": rLogin(); break;
+    case "create": rCreate(); break;
+    case "world": rWorld(); break;
+    case "dialogue": rDialogue(); break;
+    case "battle": rBattle(); break;
+    case "victory": rVictory(); break;
+    case "defeat": rDefeat(); break;
+    case "status": rStatus(); break;
+    case "inventory": rInventory(); break;
+    case "chat": rChat(); break;
+    case "shop": rShop(); break;
   }
-  hdrZone.textContent = playerData.zoneName || "";
 }
 
-// Emotion map
-const EMOTIONS = { happy: "笑顔", sad: "悲しみ", angry: "怒り", surprised: "驚き", neutral: "" };
-
-function stripTags(text) {
-  return (text || "").replace(/\[e:\w+\]/g, "").replace(/\[p:\w+\]/g, "").replace(/\[click\]/g, "").replace(/\[wait:\d+\]/g, "").replace(/\[t\]/g, "").replace(/\[w\]/g, "").replace(/\[s\]/g, "");
-}
-
-function getEmotion(text) {
-  const m = (text || "").match(/\[e:(\w+)\]/);
-  return m ? (EMOTIONS[m[1]] || m[1]) : "";
-}
-
-// ── Screens ──
-
-function renderLogin() {
-  currentScreen = "login";
-  fullLeft();
-  hdrZone.textContent = "ログイン";
-  html(leftPanel, `
-    <div class="center-text">
-      <div style="margin-bottom:20px;color:var(--accent)">Text MMO</div>
-      <div class="system-msg">サーバーに接続中...</div>
-    </div>
-  `);
+function rLogin() {
+  hideRight();
+  hdrZone.textContent = "接続中...";
+  h(leftPanel, `<div class="center-text"><div style="color:var(--accent)">Text MMO</div><div class="system-msg" style="margin-top:12px">接続中...</div></div>`);
   setChoices([]);
-  connect();
 }
 
-function renderCharCreate() {
-  currentScreen = "char-create";
-  fullLeft();
+function rCreate() {
+  hideRight();
   hdrZone.textContent = "キャラクター作成";
-  html(leftPanel, `
+  h(leftPanel, `
     <div style="max-width:400px;margin:20px auto">
       <div class="section-title">名前</div>
-      <input type="text" id="char-name" style="width:100%;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);font-family:var(--font);font-size:14px;border-radius:4px" placeholder="名前を入力">
+      <input type="text" id="char-name" style="width:100%;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);font-family:var(--font);font-size:14px;border-radius:4px" placeholder="名前を入力" autofocus>
       <div class="section-title">職業</div>
-      <div id="class-select"></div>
+      <button class="choice-btn" style="width:100%;margin:4px 0" onclick="doCreate('warrior')">[1] 戦士 (HP↑ ATK↑ DEF↑)</button>
+      <button class="choice-btn" style="width:100%;margin:4px 0" onclick="doCreate('mage')">[2] 魔法使い (MP↑ MAG↑)</button>
+      <button class="choice-btn" style="width:100%;margin:4px 0" onclick="doCreate('thief')">[3] 盗賊 (SPD↑)</button>
     </div>
-  `);
-  const classEl = $("class-select");
-  html(classEl, `
-    <button class="choice-btn" style="width:100%;margin:4px 0" onclick="selectClass('warrior')">[1] 戦士 (HP+ ATK+ DEF+)</button>
-    <button class="choice-btn" style="width:100%;margin:4px 0" onclick="selectClass('mage')">[2] 魔法使い (MP+ MAG+)</button>
-    <button class="choice-btn" style="width:100%;margin:4px 0" onclick="selectClass('thief')">[3] 盗賊 (SPD+ LUK+)</button>
   `);
   setChoices([]);
 }
-
-window.selectClass = function(classType) {
-  const name = $("char-name")?.value?.trim();
-  if (!name) { alert("名前を入力してください"); return; }
-  worldRoom.send("create_character", { name, classType, gender: "male" });
+window.doCreate = cls => {
+  const n = document.getElementById("char-name")?.value?.trim();
+  if (!n) return alert("名前を入力してください");
+  worldRoom.send("create_character", { name: n, classType: cls, gender: "male" });
 };
 
-function renderWorld() {
-  currentScreen = "world";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-  updateHeader();
+function rWorld() {
+  showRight();
+  let left = "";
+  if (zoneInfo) left += `<div style="margin-bottom:8px">${zoneInfo.description || ""}</div>`;
+  if (sysLog.length) left += sysLog.map(m => `<div class="system-msg">${m}</div>`).join("");
+  h(leftPanel, left || `<div class="system-msg">周囲を見渡す...</div>`);
 
-  // Left: zone description + system messages
-  const zone = playerData.zoneInfo;
-  let leftHtml = "";
-  if (zone) {
-    leftHtml += `<div style="margin-bottom:12px">${zone.description || ""}</div>`;
-  }
-  // Recent system messages
-  if (playerData.systemMessages?.length > 0) {
-    leftHtml += playerData.systemMessages.map(m => `<div class="system-msg">${m}</div>`).join("");
-  }
-  html(leftPanel, leftHtml || `<div class="system-msg">周囲を見渡す...</div>`);
-
-  // Right: players, NPCs, directions
-  let rightHtml = "";
-
-  // Players
+  let right = "";
   if (worldRoom?.state?.players) {
     const others = [];
-    worldRoom.state.players.forEach(p => {
-      if (p.name !== playerData.name) others.push(p);
-    });
-    if (others.length > 0) {
-      rightHtml += `<div class="section-title">ここにいる人</div>`;
-      others.forEach(p => {
-        rightHtml += `<div><span class="player-name">${p.name}</span> <span class="text-dim">Lv.${p.level}</span></div>`;
-      });
+    worldRoom.state.players.forEach(p => { if (p.name !== player.name) others.push(p); });
+    if (others.length) {
+      right += `<div class="section-title">ここにいる人</div>`;
+      others.forEach(p => { right += `<div><span class="player-name">${p.name}</span> Lv.${p.level}</div>`; });
     }
   }
-
-  // NPCs
-  if (zone?.npcs?.length > 0) {
-    rightHtml += `<div class="section-title">NPC</div>`;
-    zone.npcs.forEach(n => { rightHtml += `<div class="npc-name">${n.name}</div>`; });
+  if (zoneInfo?.npcs?.length) {
+    right += `<div class="section-title">NPC</div>`;
+    zoneInfo.npcs.forEach(n => { right += `<div class="npc-name">${n.name}</div>`; });
   }
-
-  // Directions
-  if (zone?.adjacentZones?.length > 0) {
-    const dirMap = { north: "北", south: "南", east: "東", west: "西" };
-    rightHtml += `<div class="section-title">方角</div>`;
-    zone.adjacentZones.forEach(a => {
-      rightHtml += `<div>${dirMap[a.direction] || a.direction}: ${a.zoneName || a.zoneId}</div>`;
-    });
+  if (zoneInfo?.adjacentZones?.length) {
+    const D = { north:"北", south:"南", east:"東", west:"西" };
+    right += `<div class="section-title">方角</div>`;
+    zoneInfo.adjacentZones.forEach(a => { right += `<div>${D[a.direction]||a.direction}: ${a.zoneName||a.zoneId}</div>`; });
   }
+  h(rightPanel, right || `<div class="system-msg">---</div>`);
 
-  html(rightPanel, rightHtml || `<div class="system-msg">誰もいない</div>`);
-
-  // Choices
-  const choices = [];
+  const ch = [];
   let n = 1;
-  if (zone?.adjacentZones) {
-    const dirMap = { north: "北", south: "南", east: "東", west: "西" };
-    zone.adjacentZones.forEach(a => {
-      choices.push([n++, `${dirMap[a.direction]}へ移動`, `move:${a.direction}`]);
-    });
-  }
-  if (zone?.npcs) {
-    zone.npcs.forEach(npc => {
-      choices.push([n++, npc.name, `npc:${npc.id}`]);
-    });
-  }
-  // Check if danger zone
-  if (zone && !zone.isSafe) {
-    choices.push([n++, "探索する", "explore"]);
-  }
-  choices.push([n++, "チャット", "chat"]);
-  choices.push([n++, "ステータス", "status"]);
-  choices.push([n++, "メニュー", "menu"]);
-  setChoices(choices);
+  const D = { north:"北", south:"南", east:"東", west:"西" };
+  if (zoneInfo?.adjacentZones) zoneInfo.adjacentZones.forEach(a => ch.push([n++, `${D[a.direction]}へ移動`, `move:${a.direction}`]));
+  if (zoneInfo?.npcs) zoneInfo.npcs.forEach(npc => ch.push([n++, npc.name, `npc:${npc.id}`]));
+  if (zoneInfo && !zoneInfo.isSafe) ch.push([n++, "探索する", "explore"]);
+  ch.push([n++, "チャット", "chat"]);
+  ch.push([n++, "ステータス", "status"]);
+  setChoices(ch);
 }
 
-function renderDialogue(data) {
-  currentScreen = "dialogue";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
+function rDialogue() {
+  if (!dialogueData) { screen = "world"; render(); return; }
+  showRight();
+  const nodes = dialogueData.nodes || [];
+  if (dialogueIdx >= nodes.length) { screen = "world"; render(); return; }
+  const node = nodes[dialogueIdx];
 
-  const nodes = data.nodes || [];
-  dialogueNodes = nodes;
-  dialogueIndex = 0;
-  playerData._dialogueData = data;
-  showDialogueNode();
-}
-
-function showDialogueNode() {
-  const data = playerData._dialogueData;
-  if (dialogueIndex >= dialogueNodes.length) { renderWorld(); return; }
-
-  const node = dialogueNodes[dialogueIndex];
-  const emotion = EMOTIONS[node.emotion] || "";
-
-  // Left: dialogue so far
-  let leftHtml = `<div class="section-title">${data.npcName}</div>`;
-  for (let i = 0; i <= dialogueIndex; i++) {
-    const n = dialogueNodes[i];
-    const em = EMOTIONS[n.emotion] || "";
-    leftHtml += `<div>`;
-    if (em) leftHtml += `<span class="emotion-tag">[${em}]</span> `;
-    leftHtml += `<span class="npc-name">${n.speaker}</span>`;
-    leftHtml += `</div>`;
-    leftHtml += `<div class="dialogue-text">${stripTags(n.text)}</div>`;
+  let left = `<div class="section-title">${dialogueData.npcName}</div>`;
+  for (let i = 0; i <= dialogueIdx; i++) {
+    const nd = nodes[i];
+    const em = EMO[nd.emotion] || "";
+    left += `<div>`;
+    if (em) left += `<span class="emotion-tag">[${em}]</span> `;
+    left += `<span class="npc-name">${nd.speaker}</span></div>`;
+    left += `<div class="dialogue-text">${strip(nd.text)}</div>`;
   }
-  html(leftPanel, leftHtml);
+  h(leftPanel, left);
 
-  // Right: memory info
-  let rightHtml = "";
-  if (data.memory) {
-    const rel = data.memory.relationScore || 0;
-    const relBar = rel > 0 ? "+".repeat(Math.min(rel / 5, 20)) : rel < 0 ? "-".repeat(Math.min(Math.abs(rel) / 5, 20)) : "0";
-    rightHtml += `<div class="section-title">関係値</div><div>${relBar} (${rel})</div>`;
-    rightHtml += `<div class="section-title">会話回数</div><div>${data.memory.interactionCount || 0}</div>`;
+  let right = "";
+  if (dialogueData.memory) {
+    const r = dialogueData.memory.relationScore || 0;
+    right += `<div class="section-title">関係値</div><div>${r > 0 ? "+".repeat(Math.min(r/5,20)) : r < 0 ? "-".repeat(Math.min(-r/5,20)) : "0"} (${r})</div>`;
+    right += `<div class="section-title">会話回数</div><div>${dialogueData.memory.interactionCount||0}</div>`;
   }
-  rightHtml += `<div class="section-title">会話</div><div>${data.label || ""}</div>`;
-  rightHtml += `<div style="margin-top:4px" class="text-dim">${data.source || ""}</div>`;
-  html(rightPanel, rightHtml);
+  right += `<div class="section-title">会話</div><div>${dialogueData.label||""}</div>`;
+  if (dialogueData.source) right += `<div class="text-dim">${dialogueData.source}</div>`;
+  h(rightPanel, right);
 
-  // Choices
-  if (node.choices && node.choices.length > 0) {
-    const choices = node.choices.map((c, i) => [i + 1, c.label, `choice:${c.next}`]);
-    setChoices(choices);
-  } else if (dialogueIndex < dialogueNodes.length - 1) {
-    setChoices([[1, "次へ", "next"], [0, "戻る", "back"]]);
+  if (node.choices?.length) {
+    setChoices(node.choices.map((c,i) => [i+1, c.label, `choice:${c.next}`]));
+  } else if (dialogueIdx < nodes.length - 1) {
+    setChoices([[1, "次へ", "dnext"], [0, "戻る", "back"]]);
   } else {
     setChoices([[0, "戻る", "back"]]);
   }
 }
 
-function renderBattle() {
-  currentScreen = "battle";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-
-  // Left: battle log
-  let leftHtml = "";
-  battleLog.forEach(entry => {
-    if (entry.type === "turn") {
-      leftHtml += `<div class="log-turn">── ターン ${entry.turn} ──</div>`;
-    } else if (entry.type === "action") {
-      leftHtml += `<div class="log-entry">${stripTags(entry.text)}</div>`;
-    } else if (entry.type === "result") {
-      leftHtml += `<div class="log-entry ${entry.win ? 'success' : 'danger'}">${stripTags(entry.text)}</div>`;
-    }
-  });
-  html(leftPanel, leftHtml || `<div class="system-msg">戦闘開始!</div>`);
-  leftPanel.scrollTop = leftPanel.scrollHeight;
-
-  // Right: HP bars
-  let rightHtml = "";
-  if (battleRoom?.state?.battlers) {
-    const allies = [];
-    const enemies = [];
-    battleRoom.state.battlers.forEach((b, id) => {
-      (b.isPlayer ? allies : enemies).push(b);
-    });
-
-    rightHtml += `<div class="section-title">味方</div>`;
-    allies.forEach(b => {
-      rightHtml += `<div><span class="player-name">${b.name}</span></div>`;
-      rightHtml += `<div>HP ${hpBar(b.hp, b.maxHp)}</div>`;
-      rightHtml += `<div style="margin-bottom:6px">MP ${hpBar(b.mp, 50, 6)}</div>`;
-    });
-
-    rightHtml += `<div class="section-title">敵</div>`;
-    enemies.forEach(b => {
-      rightHtml += `<div>${b.name}</div>`;
-      rightHtml += `<div style="margin-bottom:6px">HP ${hpBar(b.hp, b.maxHp)}</div>`;
-    });
-  }
-  html(rightPanel, rightHtml);
-
-  // Choices
-  if (battleRoom?.state?.phase === "selecting") {
-    setChoices([
-      [1, "攻撃", "battle:attack"],
-      [2, "防御", "battle:defend"],
-      [3, "アイテム", "battle:item"],
-      [4, "逃走", "battle:flee"],
-    ]);
-  } else {
-    setChoices([]);
-  }
-}
-
-function renderVictory(data) {
-  currentScreen = "victory";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-
-  let leftHtml = `<div class="success" style="font-size:16px;margin-bottom:12px">勝利!</div>`;
-  leftHtml += `<div>${stripTags(data.log)}</div>`;
-  if (data.levelUps) {
-    for (const [userId, lv] of Object.entries(data.levelUps)) {
-      leftHtml += `<div class="success" style="margin-top:8px">★ レベルアップ! Lv.${lv.newLevel}</div>`;
-      const sc = lv.statChanges;
-      if (sc.hp) leftHtml += `<div>HP +${sc.hp}</div>`;
-      if (sc.atk) leftHtml += `<div>ATK +${sc.atk}</div>`;
-      if (sc.def) leftHtml += `<div>DEF +${sc.def}</div>`;
-    }
-  }
-  html(leftPanel, leftHtml);
-
-  let rightHtml = `<div class="section-title">獲得</div>`;
-  rightHtml += `<div>EXP: +${data.expGained}</div>`;
-  rightHtml += `<div>Gold: +${data.goldGained}</div>`;
-  if (data.drops?.length > 0) {
-    rightHtml += `<div class="section-title">ドロップ</div>`;
-    data.drops.forEach(d => { rightHtml += `<div>${d.name}</div>`; });
-  }
-  if (data.questProgress) {
-    rightHtml += `<div class="section-title">クエスト</div>`;
-    for (const [userId, progress] of Object.entries(data.questProgress)) {
-      progress.forEach(p => {
-        rightHtml += `<div class="quest-progress">${p.targetName} (${p.current}/${p.required})${p.completed ? " ★" : ""}</div>`;
-      });
-    }
-  }
-  html(rightPanel, rightHtml);
-  setChoices([[1, "続ける", "back"]]);
-}
-
-function renderDefeat(data) {
-  currentScreen = "defeat";
-  fullLeft();
-  html(leftPanel, `
-    <div class="center-text">
-      <div class="danger" style="font-size:18px;margin-bottom:20px">全滅...</div>
-      <div style="margin-bottom:16px">意識が遠のく…</div>
-      <div>気がつくと村の井戸の前にいた。</div>
-      <div style="margin-top:16px;color:var(--warning)">HP/MP は全回復した。</div>
-    </div>
-  `);
-  setChoices([[1, "続ける", "back"]]);
-}
-
-function renderStatus() {
-  currentScreen = "status";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-
-  worldRoom.onMessage("player_status", data => {
-    let leftHtml = `<div class="section-title">キャラクター</div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">名前</span><span>${data.name}</span></div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">職業</span><span>${data.classType === "warrior" ? "戦士" : data.classType === "mage" ? "魔法使い" : "盗賊"}</span></div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">レベル</span><span>Lv.${data.level} (EXP: ${data.exp})</span></div>`;
-    leftHtml += `<div class="section-title">ステータス</div>`;
-    leftHtml += `<div>HP ${hpBar(data.hp, data.maxHp, 15)}</div>`;
-    leftHtml += `<div>MP ${hpBar(data.mp, data.maxMp, 10)}</div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">ATK</span><span>${data.atk}</span></div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">DEF</span><span>${data.def}</span></div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">MAG</span><span>${data.mag}</span></div>`;
-    leftHtml += `<div class="stat-row"><span class="stat-label">SPD</span><span>${data.spd}</span></div>`;
-    leftHtml += `<div class="section-title">所持金</div><div>${data.gold}G</div>`;
-    html(leftPanel, leftHtml);
-    playerData = { ...playerData, ...data };
-    updateHeader();
-  });
-  worldRoom.send("status", {});
-
-  // Right: quests
-  worldRoom.onMessage("quest_log", data => {
-    let rightHtml = `<div class="section-title">クエスト</div>`;
-    const entries = Object.entries(data.quests || {});
-    if (entries.length === 0) {
-      rightHtml += `<div class="system-msg">なし</div>`;
-    } else {
-      entries.forEach(([id, q]) => {
-        const cls = q.status === "completed" ? "quest-done" : "quest-active";
-        rightHtml += `<div class="${cls}">${id} [${q.status === "completed" ? "完了" : "進行中"}]</div>`;
-        Object.entries(q.progress || {}).forEach(([k, v]) => {
-          rightHtml += `<div class="quest-progress">${k}: ${v}</div>`;
-        });
-      });
-    }
-    html(rightPanel, rightHtml);
-  });
-  worldRoom.send("quest_log", {});
-
-  setChoices([[1, "装備", "equip"], [2, "インベントリ", "inventory"], [0, "戻る", "back"]]);
-}
-
-function renderChat() {
-  currentScreen = "chat";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-
-  // Left: chat log
-  let leftHtml = chatLog.slice(-30).map(m => {
-    if (m.whisper) return `<div class="warning" style="margin-left:12px">(ひそひそ) ${m.sender}: ${m.text}</div>`;
-    return `<div><span class="player-name">${m.sender}</span>: ${m.text}</div>`;
+function rBattle() {
+  showRight();
+  let left = battleLog.map(e => {
+    if (e.type === "turn") return `<div class="log-turn">── ターン ${e.turn} ──</div>`;
+    if (e.type === "result") return `<div class="log-entry ${e.win?'success':'danger'}">${strip(e.text)}</div>`;
+    return `<div class="log-entry">${strip(e.text)}</div>`;
   }).join("");
-  html(leftPanel, leftHtml || `<div class="system-msg">チャットログなし</div>`);
+  h(leftPanel, left || `<div class="system-msg">戦闘開始!</div>`);
   leftPanel.scrollTop = leftPanel.scrollHeight;
 
-  // Right: online players
-  let rightHtml = `<div class="section-title">オンライン</div>`;
-  if (worldRoom?.state?.players) {
-    worldRoom.state.players.forEach(p => {
-      rightHtml += `<div class="player-name">${p.name} (Lv.${p.level})</div>`;
-    });
+  let right = "";
+  if (battleRoom?.state?.battlers) {
+    const allies = [], enemies = [];
+    battleRoom.state.battlers.forEach(b => (b.isPlayer ? allies : enemies).push(b));
+    right += `<div class="section-title">味方</div>`;
+    allies.forEach(b => { right += `<div class="player-name">${b.name}</div><div>HP ${hpBar(b.hp,b.maxHp)}</div><div style="margin-bottom:4px">MP ${hpBar(b.mp,50,6)}</div>`; });
+    right += `<div class="section-title">敵</div>`;
+    enemies.forEach(b => { right += `<div>${b.name}</div><div>HP ${hpBar(b.hp,b.maxHp)}</div>`; });
   }
-  html(rightPanel, rightHtml);
+  h(rightPanel, right);
 
-  showTextInput("メッセージを入力...", text => {
+  if (battleRoom?.state?.phase === "selecting") {
+    setChoices([[1,"攻撃","b:attack"],[2,"防御","b:defend"],[3,"アイテム","b:item"],[4,"逃走","b:flee"]]);
+  } else { setChoices([]); }
+}
+
+function rVictory() {
+  showRight();
+  const d = player._victory;
+  if (!d) { screen = "world"; render(); return; }
+  let left = `<div class="success" style="font-size:16px;margin-bottom:12px">勝利!</div><div>${strip(d.log)}</div>`;
+  if (d.levelUps) Object.values(d.levelUps).forEach(lv => {
+    left += `<div class="success" style="margin-top:8px">★ Lv UP! Lv.${lv.newLevel}</div>`;
+    const s = lv.statChanges; if (s.hp) left += `<div>HP+${s.hp}</div>`; if (s.atk) left += `<div>ATK+${s.atk}</div>`;
+  });
+  h(leftPanel, left);
+  let right = `<div class="section-title">獲得</div><div>EXP +${d.expGained}</div><div>Gold +${d.goldGained}</div>`;
+  if (d.drops?.length) { right += `<div class="section-title">ドロップ</div>`; d.drops.forEach(x => right += `<div>${x.name}</div>`); }
+  h(rightPanel, right);
+  setChoices([[1, "続ける", "back"]]);
+}
+
+function rDefeat() {
+  hideRight();
+  h(leftPanel, `<div class="center-text"><div class="danger" style="font-size:18px;margin-bottom:20px">全滅...</div><div>意識が遠のく…</div><div style="margin-top:12px">気がつくと村の井戸の前にいた。</div><div style="margin-top:12px;color:var(--warning)">HP/MP全回復</div></div>`);
+  setChoices([[1, "続ける", "back"]]);
+}
+
+function rStatus() {
+  showRight();
+  if (!statusCache) { h(leftPanel, `<div class="system-msg">読み込み中...</div>`); setChoices([[0,"戻る","back"]]); return; }
+  const d = statusCache;
+  const cn = { warrior:"戦士", mage:"魔法使い", thief:"盗賊" };
+  let left = `<div class="section-title">キャラクター</div>`;
+  left += `<div class="stat-row"><span class="stat-label">名前</span><span>${d.name}</span></div>`;
+  left += `<div class="stat-row"><span class="stat-label">職業</span><span>${cn[d.classType]||d.classType}</span></div>`;
+  left += `<div class="stat-row"><span class="stat-label">レベル</span><span>Lv.${d.level} (EXP:${d.exp})</span></div>`;
+  left += `<div class="section-title">ステータス</div>`;
+  left += `<div>HP ${hpBar(d.hp,d.maxHp,15)}</div><div>MP ${hpBar(d.mp,d.maxMp,10)}</div>`;
+  ["atk","def","mag","spd"].forEach(k => left += `<div class="stat-row"><span class="stat-label">${k.toUpperCase()}</span><span>${d[k]}</span></div>`);
+  left += `<div class="section-title">所持金</div><div>${d.gold}G</div>`;
+  h(leftPanel, left);
+
+  let right = `<div class="section-title">クエスト</div>`;
+  if (questCache) {
+    const q = Object.entries(questCache);
+    if (q.length === 0) right += `<div class="system-msg">なし</div>`;
+    else q.forEach(([id,v]) => { right += `<div class="${v.status==="completed"?"quest-done":"quest-active"}">${id} [${v.status==="completed"?"完了":"進行中"}]</div>`; });
+  }
+  h(rightPanel, right);
+  setChoices([[1,"装備","equip"],[2,"インベントリ","inventory"],[0,"戻る","back"]]);
+}
+
+function rInventory() {
+  hideRight();
+  if (!invCache) { h(leftPanel, `<div class="system-msg">読み込み中...</div>`); setChoices([[0,"戻る","back"]]); return; }
+  let left = `<div class="section-title">インベントリ (Gold: ${invCache.gold}G)</div>`;
+  if (invCache.inventory.length === 0) left += `<div class="system-msg">何も持っていない</div>`;
+  else invCache.inventory.forEach((it,i) => { left += `<div class="item-row"><span>[${i+1}] ${it.name} x${it.quantity}</span><span class="text-dim">${it.type}</span></div>`; });
+  h(leftPanel, left);
+  setChoices([[0,"戻る","back"]]);
+}
+
+function rChat() {
+  showRight();
+  h(leftPanel, chatLog.slice(-30).map(m => m.whisper
+    ? `<div class="warning" style="margin-left:12px">(ひそひそ) ${m.sender}: ${m.text}</div>`
+    : `<div><span class="player-name">${m.sender}</span>: ${m.text}</div>`
+  ).join("") || `<div class="system-msg">チャットログなし</div>`);
+  leftPanel.scrollTop = leftPanel.scrollHeight;
+
+  let right = `<div class="section-title">オンライン</div>`;
+  if (worldRoom?.state?.players) worldRoom.state.players.forEach(p => { right += `<div class="player-name">${p.name} Lv.${p.level}</div>`; });
+  h(rightPanel, right);
+
+  showInput("メッセージを入力...", text => {
     if (chatRoom) chatRoom.send("chat", { text, channel: "global" });
-    chatLog.push({ sender: playerData.name || "you", text });
-    renderChat();
+    chatLog.push({ sender: player.name || "you", text });
+    rChat();
   });
 }
 
-function renderShop(data) {
-  currentScreen = "shop";
-  show(rightPanel);
-  leftPanel.classList.remove("full");
-
-  let leftHtml = `<div class="section-title">商品一覧</div>`;
-  const choices = [];
-  data.items.forEach((item, i) => {
-    leftHtml += `<div class="item-row"><span>[${i + 1}] ${item.name}</span><span class="item-price">${item.price}G</span></div>`;
-    if (item.description) leftHtml += `<div class="item-effect">${item.description}</div>`;
-    choices.push([i + 1, `${item.name} (${item.price}G)`, `buy:${item.id}`]);
+function rShop() {
+  if (!shopData) { screen = "world"; render(); return; }
+  showRight();
+  let left = `<div class="section-title">${shopData.npcName || "ショップ"}</div>`;
+  const ch = [];
+  shopData.items.forEach((it,i) => {
+    left += `<div class="item-row"><span>[${i+1}] ${it.name}</span><span class="item-price">${it.price}G</span></div>`;
+    if (it.description) left += `<div class="item-effect">${it.description}</div>`;
+    ch.push([i+1, `${it.name} (${it.price}G)`, `buy:${it.id}`]);
   });
-  html(leftPanel, leftHtml);
+  h(leftPanel, left);
 
-  // Right: inventory
-  worldRoom.onMessage("player_inventory", inv => {
-    let rightHtml = `<div class="section-title">所持品</div>`;
-    rightHtml += `<div style="margin-bottom:8px">Gold: ${inv.gold}G</div>`;
-    inv.inventory.forEach(item => {
-      rightHtml += `<div>${item.name} x${item.quantity}</div>`;
-    });
-    html(rightPanel, rightHtml);
-  });
-  worldRoom.send("inventory", {});
+  let right = `<div class="section-title">所持品</div><div style="margin-bottom:4px">Gold: ${invCache?.gold ?? "?"}G</div>`;
+  if (invCache) invCache.inventory.forEach(it => { right += `<div>${it.name} x${it.quantity}</div>`; });
+  h(rightPanel, right);
 
-  choices.push([0, "戻る", "back"]);
-  setChoices(choices);
-  playerData._shopData = data;
+  ch.push([0, "戻る", "back"]);
+  setChoices(ch);
 }
 
-// ── Choice handler ──
-function handleChoice(action) {
-  if (!action) return;
-
-  if (action === "back") {
-    if (battleRoom) { battleRoom.leave(); battleRoom = null; }
-    renderWorld();
+// ── Action handler ──
+function act(a) {
+  if (!a) return;
+  if (a === "back") { if (battleRoom) { battleRoom.leave(); battleRoom = null; } screen = "world"; render(); return; }
+  if (a === "dnext") { dialogueIdx++; render(); return; }
+  if (a === "status") { worldRoom.send("status",{}); worldRoom.send("quest_log",{}); screen = "status"; render(); return; }
+  if (a === "inventory") { worldRoom.send("inventory",{}); screen = "inventory"; render(); return; }
+  if (a === "equip") { screen = "status"; render(); return; } // TODO
+  if (a === "chat") { screen = "chat"; render(); return; }
+  if (a === "explore") { worldRoom.send("explore",{}); return; }
+  if (a.startsWith("move:")) { worldRoom.send("move", { direction: a.split(":")[1] }); return; }
+  if (a.startsWith("npc:")) { worldRoom.send("interact", { targetId: a.split(":")[1] }); return; }
+  if (a.startsWith("choice:")) {
+    const next = a.split(":")[1];
+    if (next === "end") { screen = "world"; render(); return; }
+    const idx = dialogueData?.nodes?.findIndex(n => n.id === next);
+    if (idx >= 0) { dialogueIdx = idx; render(); } else { screen = "world"; render(); }
     return;
   }
-  if (action === "next") { dialogueIndex++; showDialogueNode(); return; }
-  if (action === "status") { renderStatus(); return; }
-  if (action === "chat") { renderChat(); return; }
-  if (action === "menu") { renderStatus(); return; }
-  if (action === "inventory") {
-    worldRoom.send("inventory", {});
-    worldRoom.onMessage("player_inventory", data => {
-      currentScreen = "inventory";
-      fullLeft();
-      let h = `<div class="section-title">インベントリ (Gold: ${data.gold}G)</div>`;
-      data.inventory.forEach((item, i) => {
-        h += `<div class="item-row"><span>[${i + 1}] ${item.name} x${item.quantity}</span><span class="text-dim">${item.type}</span></div>`;
-      });
-      html(leftPanel, h || `<div class="system-msg">何も持っていない</div>`);
-      setChoices([[0, "戻る", "back"]]);
-    });
+  if (a.startsWith("buy:")) {
+    worldRoom.send("shop_buy", { npcId: shopData?.npcId, itemId: a.split(":")[1] });
     return;
   }
-  if (action === "equip") {
-    worldRoom.send("status", {});
-    worldRoom.onMessage("player_status", data => {
-      currentScreen = "equip";
-      show(rightPanel);
-      leftPanel.classList.remove("full");
-      let leftHtml = `<div class="section-title">装備</div>`;
-      leftHtml += `<div>武器: ${data.equipment?.weapon || "なし"}</div>`;
-      leftHtml += `<div>防具: ${data.equipment?.armor || "なし"}</div>`;
-      leftHtml += `<div>アクセ: ${data.equipment?.accessory || "なし"}</div>`;
-      html(leftPanel, leftHtml);
-      let rightHtml = `<div class="section-title">ステータス</div>`;
-      rightHtml += `<div>ATK: ${data.atk} DEF: ${data.def}</div>`;
-      rightHtml += `<div>MAG: ${data.mag} SPD: ${data.spd}</div>`;
-      html(rightPanel, rightHtml);
-      setChoices([[0, "戻る", "back"]]);
-    });
-    return;
-  }
-  if (action === "explore") {
-    worldRoom.send("explore", {});
-    return;
-  }
-
-  // Move
-  if (action.startsWith("move:")) {
-    worldRoom.send("move", { direction: action.split(":")[1] });
-    return;
-  }
-
-  // NPC interact
-  if (action.startsWith("npc:")) {
-    worldRoom.send("interact", { targetId: action.split(":")[1] });
-    return;
-  }
-
-  // Dialogue choice → jump to node
-  if (action.startsWith("choice:")) {
-    const nextId = action.split(":")[1];
-    if (nextId === "end") { renderWorld(); return; }
-    const idx = dialogueNodes.findIndex(n => n.id === nextId);
-    if (idx >= 0) { dialogueIndex = idx; showDialogueNode(); }
-    else { renderWorld(); }
-    return;
-  }
-
-  // Shop buy
-  if (action.startsWith("buy:")) {
-    const itemId = action.split(":")[1];
-    worldRoom.send("shop_buy", { npcId: playerData._shopData?.npcId, itemId });
-    return;
-  }
-
-  // Battle actions
-  if (action.startsWith("battle:")) {
-    const type = action.split(":")[1];
-    if (type === "item") {
-      // TODO: item selection screen
-      setChoices([[0, "戻る", "back"]]);
-      return;
-    }
+  if (a.startsWith("b:")) {
+    const type = a.split(":")[1];
     battleRoom.send("action", { type, targetId: "enemy-001" });
     return;
   }
+  if (a === "shop") { worldRoom.send("shop_list", { npcId: player._shopNpcId }); return; }
 }
 
 // ── Keyboard ──
 document.addEventListener("keydown", e => {
-  if (textInput.classList.contains("visible")) return;
-  const key = e.key;
-  if (key >= "0" && key <= "9") {
-    const btns = choicesEl.querySelectorAll(".choice-btn");
-    const target = [...btns].find(b => b.textContent.startsWith(`[${key}]`));
-    if (target) target.click();
+  if (textInput.classList.contains("visible") && e.key !== "Escape") return;
+  if (e.key === "Escape") { act("back"); return; }
+  if (e.key >= "0" && e.key <= "9") {
+    const btn = [...choicesEl.querySelectorAll(".choice-btn")].find(b => b.textContent.startsWith(`[${e.key}]`));
+    if (btn) btn.click();
   }
-  if (key === "Escape") handleChoice("back");
-  if (key === " " || key === "Enter") {
-    if (currentScreen === "dialogue") handleChoice("next");
-  }
+  if ((e.key === " " || e.key === "Enter") && screen === "dialogue") act("dnext");
 });
 
-// ── Connection ──
+// ── Connect ──
 async function connect() {
   try {
     client = new Colyseus.Client(ENDPOINT);
-
-    // Generate a simple token (dev mode)
-    const userId = "browser-" + Math.random().toString(36).slice(2, 8);
+    const userId = "browser-" + Math.random().toString(36).slice(2,8);
 
     worldRoom = await client.joinOrCreate("world", {
-      token: userId, // simplified for dev
+      token: userId,
       zoneId: "zone-001-village",
       zoneName: "はじまりの村",
     });
 
-    setupWorldRoom();
+    player.zoneName = "はじまりの村";
+
+    // Build zoneInfo from server state once synced
+    worldRoom.onStateChange.once(() => {
+      buildZoneInfo();
+    });
+
+    setupHandlers();
 
   } catch (e) {
-    html(leftPanel, `
-      <div class="center-text">
-        <div class="danger">接続失敗</div>
-        <div style="margin-top:12px" class="system-msg">${e.message}</div>
-        <div style="margin-top:12px" class="system-msg">サーバーを起動してください:</div>
-        <div style="margin-top:4px">npx tsx mmo/server.ts</div>
-      </div>
-    `);
-    setChoices([[1, "再接続", "reconnect"]]);
+    h(leftPanel, `<div class="center-text"><div class="danger">接続失敗</div><div class="system-msg" style="margin-top:12px">${e.message}</div><div class="system-msg" style="margin-top:8px">npx tsx mmo/server.ts</div></div>`);
+    setChoices([]);
   }
 }
 
-function setupWorldRoom() {
-  worldRoom.onMessage("need_character_creation", () => {
-    renderCharCreate();
+// ALL message handlers registered ONCE
+function setupHandlers() {
+  worldRoom.onMessage("need_character_creation", () => { screen = "create"; render(); });
+
+  worldRoom.onMessage("welcome", d => {
+    player = { ...player, name: d.name, level: d.level, zoneName: d.zoneName };
+    screen = "world"; render();
   });
 
-  worldRoom.onMessage("welcome", data => {
-    playerData = { ...playerData, name: data.name, level: data.level, zoneName: data.zoneName };
-    updateHeader();
-    renderWorld();
+  worldRoom.onMessage("character_created", d => {
+    player = { ...player, name: d.name, level: 1, hp: d.hp, maxHp: d.maxHp, mp: d.mp, maxMp: d.maxMp, zoneName: "はじまりの村" };
+    sysMsg(`${d.name}が誕生した!`);
+    screen = "world"; render();
   });
 
-  worldRoom.onMessage("character_created", data => {
-    playerData = { ...playerData, name: data.name, level: 1, hp: data.hp, maxHp: data.maxHp, mp: data.mp, maxMp: data.maxMp, zoneName: "はじまりの村" };
-    addSystemMsg(`${data.name} (${data.classType === "warrior" ? "戦士" : data.classType === "mage" ? "魔法使い" : "盗賊"}) が誕生した!`);
-    updateHeader();
-    renderWorld();
-  });
+  worldRoom.onMessage("zone_change", async d => {
+    const newZoneId = d.zoneId;
+    sysMsg(`${newZoneId} に移動`);
 
-  worldRoom.onMessage("zone_change", data => {
-    playerData.zoneName = data.zoneName || data.zoneId;
-    playerData.zoneInfo = null; // will be updated from options on rejoin
-    addSystemMsg(`${data.zoneId} に移動した`);
-    updateHeader();
-    renderWorld();
-  });
-
-  worldRoom.onMessage("npc_dialogue", data => {
-    // Legacy dialogue
-    renderDialogue({
-      npcName: data.npcName,
-      label: "",
-      source: "legacy",
-      nodes: [{ id: "n0", speaker: data.npcName, text: data.text, emotion: "neutral" }],
-      memory: null,
-    });
-  });
-
-  worldRoom.onMessage("npc_conversation", data => {
-    renderDialogue(data);
-  });
-
-  worldRoom.onMessage("encounter", data => {
-    if (data.type === "battle") {
-      addSystemMsg(`${data.enemy.name} が現れた!`);
-      startBattle(data.enemy);
-    } else if (data.type === "item") {
-      addSystemMsg(`${data.itemName} x${data.quantity} を見つけた!`);
-      renderWorld();
-    } else {
-      addSystemMsg("特に何も見つからなかった。");
-      renderWorld();
-    }
-  });
-
-  worldRoom.onMessage("shop_items", data => {
-    renderShop(data);
-  });
-
-  worldRoom.onMessage("shop_bought", data => {
-    addSystemMsg(`購入完了! Gold: ${data.gold}G`);
-    // Refresh shop
-    if (playerData._shopData) {
-      worldRoom.send("shop_list", { npcId: playerData._shopData.npcId });
-    }
-  });
-
-  worldRoom.onMessage("item_used", data => {
-    addSystemMsg(data.log);
-    playerData.hp = data.hp;
-    playerData.mp = data.mp;
-    updateHeader();
-  });
-
-  worldRoom.onMessage("quest_accepted", data => {
-    addSystemMsg(`クエスト受注: ${data.questId}`);
-  });
-
-  worldRoom.onMessage("error", data => {
-    addSystemMsg(`[エラー] ${data.message || data.code}`);
-    if (currentScreen === "world") renderWorld();
-  });
-
-  // Chat
-  try {
-    client.joinOrCreate("chat", {
-      token: "browser-chat",
-      name: playerData.name || "anonymous",
-      zoneId: "zone-001-village",
-    }).then(room => {
-      chatRoom = room;
-      chatRoom.onMessage("chat_message", msg => {
-        chatLog.push(msg);
-        if (currentScreen === "chat") renderChat();
+    // Leave current room and join new zone
+    try {
+      await worldRoom.leave();
+      worldRoom = await client.joinOrCreate("world", {
+        token: player._token,
+        zoneId: newZoneId,
+        zoneName: d.zoneName || newZoneId,
       });
-    });
-  } catch (e) { /* chat optional */ }
+      player.zoneName = d.zoneName || newZoneId;
+      setupHandlers(); // re-register handlers on new room
+      worldRoom.onStateChange.once(() => { buildZoneInfo(); });
+      // Wait for state sync
+      setTimeout(() => { buildZoneInfo(); screen = "world"; render(); }, 300);
+    } catch (e) {
+      sysMsg(`移動失敗: ${e.message}`);
+      screen = "world"; render();
+    }
+  });
 
-  // Store zone info from room options (if available from state)
-  playerData.zoneInfo = {
-    description: "穏やかな風が吹く小さな村。石畳の広場に井戸がある。",
-    isSafe: true,
-    npcs: [
-      { id: "npc-elder", name: "長老ヨハン" },
-      { id: "npc-merchant", name: "商人マリア" },
-    ],
-    adjacentZones: [{ direction: "north", zoneId: "zone-004-capital", zoneName: "王都セレス" }],
-  };
-  playerData.systemMessages = [];
+  worldRoom.onMessage("npc_dialogue", d => {
+    dialogueData = { npcName: d.npcName, label: "", source: "legacy", nodes: [{ id:"n0", speaker: d.npcName, text: d.text, emotion:"neutral" }], memory: null };
+    dialogueIdx = 0; screen = "dialogue"; render();
+  });
+
+  worldRoom.onMessage("npc_conversation", d => {
+    dialogueData = d; dialogueIdx = 0; screen = "dialogue"; render();
+  });
+
+  worldRoom.onMessage("encounter", d => {
+    if (d.type === "battle") { sysMsg(`${d.enemy.name}が現れた!`); startBattle(d.enemy); }
+    else if (d.type === "item") { sysMsg(`${d.itemName} x${d.quantity} を発見!`); render(); }
+    else { sysMsg("何も見つからなかった。"); render(); }
+  });
+
+  worldRoom.onMessage("shop_items", d => { shopData = d; worldRoom.send("inventory",{}); screen = "shop"; render(); });
+
+  worldRoom.onMessage("shop_bought", d => { sysMsg(`購入! Gold:${d.gold}G`); worldRoom.send("inventory",{}); if (screen==="shop" && shopData) worldRoom.send("shop_list",{npcId:shopData.npcId}); });
+
+  worldRoom.onMessage("shop_sold", d => { sysMsg(`売却! Gold:${d.gold}G`); });
+
+  worldRoom.onMessage("item_used", d => { sysMsg(d.log); player.hp = d.hp; player.mp = d.mp; render(); });
+
+  worldRoom.onMessage("quest_accepted", d => { sysMsg(`クエスト受注: ${d.questId}`); });
+
+  worldRoom.onMessage("player_status", d => { statusCache = d; player = { ...player, ...d }; if (screen==="status") render(); });
+
+  worldRoom.onMessage("player_inventory", d => { invCache = d; if (screen==="inventory") render(); if (screen==="shop") render(); });
+
+  worldRoom.onMessage("quest_log", d => { questCache = d.quests; if (screen==="status") render(); });
+
+  worldRoom.onMessage("error", d => { sysMsg(`${d.message||d.code}`); if (screen==="world") render(); });
+
+  // Chat room
+  client.joinOrCreate("chat", { token: "browser-chat", name: player.name || "anonymous", zoneId: "zone-001-village" })
+    .then(room => { chatRoom = room; chatRoom.onMessage("chat_message", m => { chatLog.push(m); if (screen==="chat") rChat(); }); })
+    .catch(() => {});
 }
 
-function addSystemMsg(msg) {
-  if (!playerData.systemMessages) playerData.systemMessages = [];
-  playerData.systemMessages.push(msg);
-  if (playerData.systemMessages.length > 10) playerData.systemMessages.shift();
+function buildZoneInfo() {
+  // Build from hardcoded zone data (until server sends zone info)
+  const ZONES = {
+    "zone-001-village": {
+      description: "穏やかな風が吹く小さな村。石畳の広場に井戸がある。",
+      isSafe: true,
+      adjacentZones: [{ direction: "north", zoneId: "zone-004-capital", zoneName: "王都セレス" }],
+    },
+    "zone-004-capital": {
+      description: "大陸最大の都市。石造りの城壁に囲まれた街。",
+      isSafe: true,
+      adjacentZones: [
+        { direction: "north", zoneId: "zone-007-port", zoneName: "港町カイル" },
+        { direction: "south", zoneId: "zone-001-village", zoneName: "はじまりの村" },
+        { direction: "east", zoneId: "zone-003-market", zoneName: "交易広場" },
+        { direction: "west", zoneId: "zone-002-forest", zoneName: "霧の森" },
+      ],
+    },
+    "zone-002-forest": {
+      description: "薄暗い森の中。木々の隙間から霧が漂う。遠くで獣の唸り声が聞こえる。",
+      isSafe: false,
+      adjacentZones: [
+        { direction: "south", zoneId: "zone-005-ruins", zoneName: "古代遺跡" },
+        { direction: "east", zoneId: "zone-004-capital", zoneName: "王都セレス" },
+      ],
+    },
+  };
+
+  const zoneId = worldRoom?.state?.zoneId || "zone-001-village";
+  const base = ZONES[zoneId] || { description: "", isSafe: true, adjacentZones: [] };
+
+  // Get NPCs from server state
+  const npcs = [];
+  if (worldRoom?.state?.npcs) {
+    worldRoom.state.npcs.forEach(n => { npcs.push({ id: n.id, name: n.name }); });
+  }
+
+  zoneInfo = { ...base, npcs };
+  if (screen === "world") render();
 }
 
 async function startBattle(enemy) {
-  battleLog = [];
+  battleLog = [{ type: "turn", turn: 1 }];
   try {
     battleRoom = await client.joinOrCreate("battle", {
       token: "browser-battle",
-      name: playerData.name || "Player",
-      attack: 15, defense: 10, hp: playerData.hp || 100, maxHp: playerData.maxHp || 100,
-      enemyName: enemy.name,
-      enemyHp: enemy.hp, enemyAttack: enemy.atk, enemyDefense: enemy.def,
-      enemyExp: enemy.exp, enemyGold: enemy.gold,
-      enemyId: enemy.id,
-      enemyDrops: enemy.drops || [],
+      name: player.name || "Player",
+      attack: 15, defense: 10, hp: player.hp || 100, maxHp: player.maxHp || 100,
+      enemyName: enemy.name, enemyHp: enemy.hp, enemyAttack: enemy.atk, enemyDefense: enemy.def,
+      enemyExp: enemy.exp, enemyGold: enemy.gold, enemyId: enemy.id, enemyDrops: enemy.drops || [],
     });
+    screen = "battle"; render();
 
-    battleRoom.onMessage("phase_change", data => {
-      if (data.phase === "selecting" && battleLog.length === 0) {
-        battleLog.push({ type: "turn", turn: 1 });
-      }
-      renderBattle();
+    battleRoom.onMessage("phase_change", () => render());
+    battleRoom.onMessage("action_result", d => { battleLog.push({ type:"action", text: d.log }); render(); });
+    battleRoom.onMessage("battle_result", d => {
+      battleLog.push({ type:"result", text: d.log, win: d.result==="win" });
+      if (d.result === "win") { player._victory = d; screen = "victory"; }
+      else if (d.result === "lose") { screen = "defeat"; }
+      else { sysMsg("逃走した!"); battleRoom.leave(); battleRoom = null; screen = "world"; }
+      render();
     });
-
-    battleRoom.onMessage("action_result", data => {
-      battleLog.push({ type: "action", text: data.log });
-      renderBattle();
-    });
-
-    battleRoom.onMessage("battle_result", data => {
-      battleLog.push({ type: "result", text: data.log, win: data.result === "win" });
-      if (data.result === "win") {
-        renderVictory(data);
-      } else if (data.result === "lose") {
-        renderDefeat(data);
-      } else {
-        addSystemMsg("逃走した!");
-        battleRoom.leave(); battleRoom = null;
-        renderWorld();
-      }
-    });
-
-    battleRoom.onMessage("error", data => {
-      battleLog.push({ type: "action", text: `[エラー] ${data.message}` });
-      renderBattle();
-    });
-
-  } catch (e) {
-    addSystemMsg(`戦闘開始に失敗: ${e.message}`);
-    renderWorld();
-  }
+    battleRoom.onMessage("error", d => { battleLog.push({ type:"action", text: `[Error] ${d.message}` }); render(); });
+  } catch (e) { sysMsg(`戦闘エラー: ${e.message}`); screen = "world"; render(); }
 }
 
 // ── Start ──
-renderLogin();
+screen = "login"; render(); connect();
