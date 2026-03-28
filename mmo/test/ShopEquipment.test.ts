@@ -2,12 +2,20 @@ import assert from "assert";
 import { ShopManager } from "../src/systems/ShopManager.ts";
 import { EquipmentManager } from "../src/systems/EquipmentManager.ts";
 import { defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("ShopManager", () => {
   let shop: ShopManager;
 
   beforeEach(() => {
-    shop = new ShopManager();
+    shop = new ShopManager(gameData);
   });
 
   it("SHOP-01: should return shop item list", () => {
@@ -65,7 +73,7 @@ describe("EquipmentManager", () => {
   let equip: EquipmentManager;
 
   beforeEach(() => {
-    equip = new EquipmentManager();
+    equip = new EquipmentManager(gameData);
   });
 
   it("EQUIP-01: should equip weapon and add ATK bonus", () => {

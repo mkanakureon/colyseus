@@ -1,6 +1,14 @@
 import assert from "assert";
 import { PartyManager } from "../src/systems/PartyManager.ts";
-import { BOSSES } from "../src/data/bosses.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
+const BOSSES = gameData.bosses;
 
 describe("PartyManager", () => {
   let mgr: PartyManager;

@@ -2,6 +2,7 @@ import { Room } from "colyseus";
 import type { Client } from "@colyseus/core";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
+import type { GameData } from "../GameData.ts";
 import type { ChatRequest, ChatMessageEvent, AppError } from "../types/messages.ts";
 
 class ChatPlayerState extends Schema {
@@ -15,18 +16,22 @@ class ChatState extends Schema {
   @type({ map: ChatPlayerState }) players = new MapSchema<ChatPlayerState>();
 }
 
-const MAX_MESSAGE_LENGTH = 200;
-const RATE_LIMIT_MS = 500; // min interval between messages
-
 export class ChatRoom extends Room<ChatState> {
   static authAdapterInstance: KaedevnAuthAdapter;
+  static gameDataInstance: GameData;
 
   private authAdapter!: KaedevnAuthAdapter;
   private lastMessageTime = new Map<string, number>();
+  private maxMessageLength = 200;
+  private rateLimitMs = 500;
 
   onCreate() {
     this.setState(new ChatState());
     this.authAdapter = ChatRoom.authAdapterInstance;
+    if (ChatRoom.gameDataInstance) {
+      this.maxMessageLength = ChatRoom.gameDataInstance.meta.maxMessageLength;
+      this.rateLimitMs = ChatRoom.gameDataInstance.meta.chatRateLimit;
+    }
 
     this.onMessage("chat", (client, data: ChatRequest) => this.handleChat(client, data));
   }
@@ -61,15 +66,15 @@ export class ChatRoom extends Room<ChatState> {
     }
 
     // Validate length
-    if (data.text.length > MAX_MESSAGE_LENGTH) {
-      client.send("error", { code: "CHAT_TOO_LONG", message: `メッセージは${MAX_MESSAGE_LENGTH}文字以内です` } satisfies AppError);
+    if (data.text.length > this.maxMessageLength) {
+      client.send("error", { code: "CHAT_TOO_LONG", message: `メッセージは${this.maxMessageLength}文字以内です` } satisfies AppError);
       return;
     }
 
     // Rate limit
     const now = Date.now();
     const lastTime = this.lastMessageTime.get(client.sessionId) || 0;
-    if (now - lastTime < RATE_LIMIT_MS) {
+    if (now - lastTime < this.rateLimitMs) {
       client.send("error", { code: "CHAT_RATE_LIMITED", message: "送信が速すぎます" } satisfies AppError);
       return;
     }

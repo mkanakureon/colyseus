@@ -4,6 +4,8 @@ import { WorldState, NPCState } from "../schemas/WorldState.ts";
 import { PlayerState } from "../schemas/PlayerState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence, defaultPlayerData } from "../persistence/PlayerPersistence.ts";
+import type { GameData } from "../GameData.ts";
+import { getQuestsByNpc } from "../GameData.ts";
 import { CharacterCreator } from "../systems/CharacterCreator.ts";
 import { EncounterManager } from "../systems/EncounterManager.ts";
 import { ItemManager } from "../systems/ItemManager.ts";
@@ -26,20 +28,22 @@ interface WorldRoomOptions {
 export class WorldRoom extends Room<WorldState> {
   static authAdapterInstance: KaedevnAuthAdapter;
   static playerDBInstance: IPlayerPersistence;
+  static gameDataInstance: GameData;
 
   private authAdapter!: KaedevnAuthAdapter;
   private playerDB!: IPlayerPersistence;
+  private gameData!: GameData;
   private adjacentZones: { direction: string; zoneId: string }[] = [];
   private npcDialogues = new Map<string, string[]>();
 
-  // Game systems
+  // Game systems (initialized in onCreate with gameData)
   private charCreator!: CharacterCreator;
-  private encounterMgr = new EncounterManager();
-  private itemMgr = new ItemManager();
-  private shopMgr = new ShopManager();
-  private equipMgr = new EquipmentManager();
-  private questMgr = new QuestManager();
-  private deathMgr = new DeathManager();
+  private encounterMgr!: EncounterManager;
+  private itemMgr!: ItemManager;
+  private shopMgr!: ShopManager;
+  private equipMgr!: EquipmentManager;
+  private questMgr!: QuestManager;
+  private deathMgr!: DeathManager;
 
   // userId → sessionId mapping
   private userToSession = new Map<string, string>();
@@ -51,8 +55,17 @@ export class WorldRoom extends Room<WorldState> {
     this.maxClients = options.maxPlayers ?? 50;
     this.authAdapter = WorldRoom.authAdapterInstance;
     this.playerDB = WorldRoom.playerDBInstance;
+    this.gameData = WorldRoom.gameDataInstance;
     this.adjacentZones = options.adjacentZones ?? [];
-    this.charCreator = new CharacterCreator(this.playerDB);
+
+    // Systems with GameData injection
+    this.charCreator = new CharacterCreator(this.playerDB, this.gameData);
+    this.encounterMgr = new EncounterManager(this.gameData);
+    this.itemMgr = new ItemManager(this.gameData);
+    this.shopMgr = new ShopManager(this.gameData);
+    this.equipMgr = new EquipmentManager(this.gameData);
+    this.questMgr = new QuestManager(this.gameData);
+    this.deathMgr = new DeathManager(this.gameData);
 
     // Load NPCs
     if (options.npcs) {
@@ -373,8 +386,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private async handleQuestList(client: Client, data: { npcId: string }) {
-    const { getQuestsByNpc } = await import("../data/quests.ts");
-    const quests = getQuestsByNpc(data.npcId);
+    const quests = getQuestsByNpc(this.gameData.quests, data.npcId);
     client.send("quest_list", { npcId: data.npcId, quests: quests.map(q => ({ id: q.id, name: q.name, description: q.description })) });
   }
 

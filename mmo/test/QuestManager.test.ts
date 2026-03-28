@@ -1,12 +1,20 @@
 import assert from "assert";
 import { QuestManager } from "../src/systems/QuestManager.ts";
 import { defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("QuestManager", () => {
   let mgr: QuestManager;
 
   beforeEach(() => {
-    mgr = new QuestManager();
+    mgr = new QuestManager(gameData);
   });
 
   it("QUEST-01: should accept quest and add to log", () => {

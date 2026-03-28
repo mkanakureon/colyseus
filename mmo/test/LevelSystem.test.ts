@@ -1,12 +1,20 @@
 import assert from "assert";
 import { LevelSystem } from "../src/systems/LevelSystem.ts";
 import { defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("LevelSystem", () => {
   let levelSystem: LevelSystem;
 
   beforeEach(() => {
-    levelSystem = new LevelSystem();
+    levelSystem = new LevelSystem(gameData);
   });
 
   it("LV-01: should level up when EXP exceeds threshold", () => {

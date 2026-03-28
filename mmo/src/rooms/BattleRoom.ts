@@ -3,6 +3,7 @@ import type { Client } from "@colyseus/core";
 import { BattleState, BattlerState } from "../schemas/BattleState.ts";
 import { KaedevnAuthAdapter, type KaedevnTokenPayload } from "../auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence } from "../persistence/PlayerPersistence.ts";
+import type { GameData } from "../GameData.ts";
 import { LevelSystem } from "../systems/LevelSystem.ts";
 import { EncounterManager } from "../systems/EncounterManager.ts";
 import { ItemManager } from "../systems/ItemManager.ts";
@@ -25,18 +26,20 @@ interface BattleRoomOptions {
 export class BattleRoom extends Room<BattleState> {
   static authAdapterInstance: KaedevnAuthAdapter;
   static playerDBInstance: IPlayerPersistence;
+  static gameDataInstance: GameData;
 
   private authAdapter!: KaedevnAuthAdapter;
   private playerDB!: IPlayerPersistence;
+  private gameData!: GameData;
   private turnOrder: string[] = [];
   private turnIndex = 0;
   private actionLog: string[] = [];
   private clientToBattler = new Map<string, string>();
-  private levelSys = new LevelSystem();
-  private encounterMgr = new EncounterManager();
-  private itemMgr = new ItemManager();
-  private questMgr = new QuestManager();
-  private deathMgr = new DeathManager();
+  private levelSys!: LevelSystem;
+  private encounterMgr!: EncounterManager;
+  private itemMgr!: ItemManager;
+  private questMgr!: QuestManager;
+  private deathMgr!: DeathManager;
 
   // Enemy metadata (for rewards)
   private enemyId = "enemy-001";
@@ -49,7 +52,15 @@ export class BattleRoom extends Room<BattleState> {
     this.setState(new BattleState());
     this.authAdapter = BattleRoom.authAdapterInstance;
     this.playerDB = BattleRoom.playerDBInstance;
+    this.gameData = BattleRoom.gameDataInstance;
     this.maxClients = 4;
+
+    // Systems with GameData
+    this.levelSys = new LevelSystem(this.gameData);
+    this.encounterMgr = new EncounterManager(this.gameData);
+    this.itemMgr = new ItemManager(this.gameData);
+    this.questMgr = new QuestManager(this.gameData);
+    this.deathMgr = new DeathManager(this.gameData);
 
     this.enemyId = options.enemyId || "enemy-001";
     this.enemyExp = options.enemyExp ?? 10;

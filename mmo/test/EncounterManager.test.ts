@@ -1,12 +1,19 @@
 import assert from "assert";
 import { EncounterManager } from "../src/systems/EncounterManager.ts";
-import { ENEMIES } from "../src/data/encounters.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("EncounterManager", () => {
   let mgr: EncounterManager;
 
   beforeEach(() => {
-    mgr = new EncounterManager();
+    mgr = new EncounterManager(gameData);
   });
 
   // === ENC: Explore ===
@@ -67,13 +74,13 @@ describe("EncounterManager", () => {
   // === DROP: Drop items ===
 
   it("DROP-01: should roll drops on victory", () => {
-    const drops = mgr.rollDrops(ENEMIES.goblin, () => 0.1); // All drops succeed (0.1 < 0.5 and 0.1 < 0.2)
+    const drops = mgr.rollDrops(gameData.enemies.goblin, () => 0.1); // All drops succeed (0.1 < 0.5 and 0.1 < 0.2)
     assert.ok(drops.length > 0);
     assert.strictEqual(drops[0].itemId, "herb-001");
   });
 
   it("DROP-02: should add drops to inventory format", () => {
-    const drops = mgr.rollDrops(ENEMIES.goblin, () => 0.1);
+    const drops = mgr.rollDrops(gameData.enemies.goblin, () => 0.1);
     for (const drop of drops) {
       assert.ok(drop.itemId);
       assert.ok(drop.name);
@@ -82,7 +89,7 @@ describe("EncounterManager", () => {
   });
 
   it("DROP-03: should return no drops when unlucky", () => {
-    const drops = mgr.rollDrops(ENEMIES.goblin, () => 0.99); // All misses
+    const drops = mgr.rollDrops(gameData.enemies.goblin, () => 0.99); // All misses
     assert.strictEqual(drops.length, 0);
   });
 });

@@ -1,6 +1,14 @@
 import assert from "assert";
 import { CharacterCreator } from "../src/systems/CharacterCreator.ts";
 import { InMemoryPlayerDB, defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("CharacterCreator", () => {
   let db: InMemoryPlayerDB;
@@ -8,7 +16,7 @@ describe("CharacterCreator", () => {
 
   beforeEach(() => {
     db = new InMemoryPlayerDB();
-    creator = new CharacterCreator(db);
+    creator = new CharacterCreator(db, gameData);
   });
 
   it("CC-01: should create warrior with correct stats", async () => {

@@ -1,9 +1,3 @@
-/**
- * MMO サーバーファクトリ
- *
- * サーバー構築・DI・Room 定義を一箇所に集約。
- * server.ts（本番起動）とテストの両方から使う。
- */
 import { Server, LocalPresence, LocalDriver, matchMaker } from "@colyseus/core";
 import type { Presence, MatchMakerDriver } from "@colyseus/core";
 import { WorldRoom } from "./rooms/WorldRoom.ts";
@@ -12,18 +6,22 @@ import { BattleRoom } from "./rooms/BattleRoom.ts";
 import { TradeRoom } from "./rooms/TradeRoom.ts";
 import { KaedevnAuthAdapter } from "./auth/KaedevnAuthAdapter.ts";
 import { type IPlayerPersistence, InMemoryPlayerDB } from "./persistence/PlayerPersistence.ts";
+import { type GameData, loadGameData } from "./GameData.ts";
 
 export interface ServerOptions {
   jwtSecret?: string;
   playerDB?: IPlayerPersistence;
   presence?: Presence;
   driver?: MatchMakerDriver;
+  gameData?: GameData;
+  gameDir?: string;  // alternative: load from directory
 }
 
 export interface MMOServer {
   server: Server;
   authAdapter: KaedevnAuthAdapter;
   playerDB: IPlayerPersistence;
+  gameData: GameData;
   listen(port: number): Promise<void>;
   shutdown(): void;
 }
@@ -35,34 +33,43 @@ export function createMMOServer(opts: ServerOptions = {}): MMOServer {
   const driver = opts.driver ?? new LocalDriver();
   const authAdapter = new KaedevnAuthAdapter(jwtSecret);
 
+  // Load game data
+  let gameData: GameData;
+  if (opts.gameData) {
+    gameData = opts.gameData;
+  } else if (opts.gameDir) {
+    gameData = loadGameData(opts.gameDir);
+  } else {
+    // Fallback: load from default location
+    const path = require("path");
+    const defaultDir = path.join(__dirname, "..", "games", "fantasy-rpg");
+    gameData = loadGameData(defaultDir);
+  }
+
   // DI
   WorldRoom.authAdapterInstance = authAdapter;
   WorldRoom.playerDBInstance = playerDB;
+  WorldRoom.gameDataInstance = gameData;
   ChatRoom.authAdapterInstance = authAdapter;
+  ChatRoom.gameDataInstance = gameData;
   BattleRoom.authAdapterInstance = authAdapter;
   BattleRoom.playerDBInstance = playerDB;
+  BattleRoom.gameDataInstance = gameData;
   TradeRoom.authAdapterInstance = authAdapter;
   TradeRoom.playerDBInstance = playerDB;
 
   const server = new Server({ greet: false, presence, driver });
   matchMaker.setup(presence, driver);
 
-  // Define rooms
   server.define("world", WorldRoom);
-  server.define("world_forest", WorldRoom);  // alias for forest zone tests
+  server.define("world_forest", WorldRoom);
   server.define("chat", ChatRoom);
   server.define("battle", BattleRoom);
   server.define("trade", TradeRoom);
 
   return {
-    server,
-    authAdapter,
-    playerDB,
-    async listen(port: number) {
-      await server.listen(port);
-    },
-    shutdown() {
-      server.transport.shutdown();
-    },
+    server, authAdapter, playerDB, gameData,
+    async listen(port: number) { await server.listen(port); },
+    shutdown() { server.transport.shutdown(); },
   };
 }

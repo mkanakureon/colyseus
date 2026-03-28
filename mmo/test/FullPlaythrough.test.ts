@@ -5,7 +5,6 @@
  * プレイヤーログは test/logs/{timestamp}_{testname}/ に保存。
  */
 import assert from "assert";
-import { FULL_ZONES, getFullZone, validateZoneGraph } from "../src/data/zones-full.ts";
 import { CharacterCreator } from "../src/systems/CharacterCreator.ts";
 import { LevelSystem } from "../src/systems/LevelSystem.ts";
 import { EncounterManager } from "../src/systems/EncounterManager.ts";
@@ -15,11 +14,41 @@ import { ShopManager } from "../src/systems/ShopManager.ts";
 import { EquipmentManager } from "../src/systems/EquipmentManager.ts";
 import { QuestManager } from "../src/systems/QuestManager.ts";
 import { PartyManager } from "../src/systems/PartyManager.ts";
-import { BOSSES } from "../src/data/bosses.ts";
-import { ENEMIES } from "../src/data/encounters.ts";
 import { InMemoryPlayerDB, type PlayerData } from "../src/persistence/PlayerPersistence.ts";
 import { TestLogger } from "./helpers/TestLogger.ts";
 import { parseInlineText, stripTags, extractDirectives } from "./mocks/inline-tags.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
+const { zones: FULL_ZONES, bosses: BOSSES, enemies: ENEMIES } = gameData;
+
+function getFullZone(id: string) {
+  return FULL_ZONES.find((z: any) => z.id === id) ?? undefined;
+}
+
+function validateZoneGraph(): string[] {
+  const errors: string[] = [];
+  const opposites: Record<string, string> = { north: "south", south: "north", east: "west", west: "east" };
+  for (const zone of FULL_ZONES) {
+    for (const adj of zone.adjacentZones) {
+      const target = FULL_ZONES.find((z: any) => z.id === adj.zoneId);
+      if (!target) {
+        errors.push(`${zone.id}: adjacent ${adj.zoneId} does not exist`);
+        continue;
+      }
+      const back = target.adjacentZones.find((a: any) => a.zoneId === zone.id && a.direction === opposites[adj.direction]);
+      if (!back) {
+        errors.push(`${zone.id} → ${adj.direction} → ${adj.zoneId}: no reverse link`);
+      }
+    }
+  }
+  return errors;
+}
 
 describe("Full Playthrough (A-8)", function () {
   this.timeout(10000);
@@ -56,14 +85,14 @@ describe("Full Playthrough (A-8)", function () {
   it("FULL-03: complete adventure — two players, all systems, 12 zones", async () => {
     const log = new TestLogger("full-adventure");
     const db = new InMemoryPlayerDB();
-    const creator = new CharacterCreator(db);
-    const levelSys = new LevelSystem();
-    const encounter = new EncounterManager();
-    const itemMgr = new ItemManager();
-    const deathMgr = new DeathManager();
-    const shopMgr = new ShopManager();
-    const equipMgr = new EquipmentManager();
-    const questMgr = new QuestManager();
+    const creator = new CharacterCreator(db, gameData);
+    const levelSys = new LevelSystem(gameData);
+    const encounter = new EncounterManager(gameData);
+    const itemMgr = new ItemManager(gameData);
+    const deathMgr = new DeathManager(gameData);
+    const shopMgr = new ShopManager(gameData);
+    const equipMgr = new EquipmentManager(gameData);
+    const questMgr = new QuestManager(gameData);
     const partyMgr = new PartyManager();
 
     // ════════════════════════════════════

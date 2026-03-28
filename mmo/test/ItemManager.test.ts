@@ -2,12 +2,20 @@ import assert from "assert";
 import { ItemManager } from "../src/systems/ItemManager.ts";
 import { DeathManager } from "../src/systems/DeathManager.ts";
 import { defaultPlayerData } from "../src/persistence/PlayerPersistence.ts";
+import { loadGameData } from "../src/GameData.ts";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = typeof import.meta.dirname === "string"
+  ? import.meta.dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const gameData = loadGameData(path.join(__dirname, "..", "games", "fantasy-rpg"));
 
 describe("ItemManager", () => {
   let mgr: ItemManager;
 
   beforeEach(() => {
-    mgr = new ItemManager();
+    mgr = new ItemManager(gameData);
   });
 
   it("ITEM-01: should heal HP with potion", () => {
@@ -57,7 +65,7 @@ describe("DeathManager", () => {
   let mgr: DeathManager;
 
   beforeEach(() => {
-    mgr = new DeathManager();
+    mgr = new DeathManager(gameData);
   });
 
   it("DEATH-01: should lose 10% gold on death", () => {
