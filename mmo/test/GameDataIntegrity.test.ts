@@ -127,4 +127,108 @@ describe("Game Data Integrity (auto-generated from JSON)", () => {
       }
     });
   }
+
+  // ── Graph 視点テスト（全体の健全性） ──
+
+  describe("Graph Health", () => {
+
+    it("every NPC has at least one role (shop, quest, or pool)", () => {
+      for (const zone of gameData.zones) {
+        for (const npc of zone.npcs) {
+          const hasShop = !!npc.shop;
+          const hasQuest = (npc.quests || []).length > 0;
+          const hasPool = !!gameData.npcConversations[npc.id];
+          assert.ok(hasShop || hasQuest || hasPool,
+            `${npc.name} (${npc.id}) in ${zone.name} has no shop, quest, or conversation pool`);
+        }
+      }
+    });
+
+    it("every danger zone has encounters", () => {
+      for (const zone of gameData.zones) {
+        if (!zone.isSafe) {
+          const enc = gameData.encounters[zone.id];
+          assert.ok(enc, `Danger zone ${zone.name} (${zone.id}) has no encounters`);
+          assert.ok(enc.enemies.length > 0, `Danger zone ${zone.name} has empty enemy list`);
+        }
+      }
+    });
+
+    it("every quest objective target exists", () => {
+      for (const [qId, quest] of Object.entries(gameData.quests)) {
+        for (const obj of quest.objectives) {
+          if (obj.type === "defeat") {
+            assert.ok(gameData.enemies[obj.targetId], `${qId}: enemy "${obj.targetId}" not found`);
+            // Enemy must appear in at least one encounter
+            const inEncounter = Object.values(gameData.encounters).some(
+              enc => enc.enemies.some(e => e.enemyId === obj.targetId)
+            );
+            assert.ok(inEncounter, `${qId}: enemy "${obj.targetId}" not in any encounter table`);
+          }
+          if (obj.type === "visit") {
+            assert.ok(gameData.zones.find(z => z.id === obj.targetId),
+              `${qId}: zone "${obj.targetId}" not found`);
+          }
+        }
+      }
+    });
+
+    it("every quest is available from at least one NPC", () => {
+      for (const qId of Object.keys(gameData.quests)) {
+        let available = false;
+        for (const zone of gameData.zones) {
+          for (const npc of zone.npcs) {
+            if ((npc.quests || []).includes(qId)) available = true;
+          }
+        }
+        assert.ok(available, `Quest ${qId} is not available from any NPC`);
+      }
+    });
+
+    it("every shop item exists in items or equipment", () => {
+      for (const [shopId, shop] of Object.entries(gameData.shops)) {
+        for (const itemId of shop.items) {
+          const exists = gameData.items[itemId] || gameData.equipment[itemId];
+          assert.ok(exists, `Shop ${shopId}: item "${itemId}" not found`);
+        }
+      }
+    });
+
+    it("no orphan zones (all reachable from start)", () => {
+      const visited = new Set<string>();
+      const queue = [gameData.meta.startZone];
+      while (queue.length > 0) {
+        const zId = queue.shift()!;
+        if (visited.has(zId)) continue;
+        visited.add(zId);
+        const zone = gameData.zones.find(z => z.id === zId);
+        if (zone) zone.adjacentZones.forEach(a => { if (!visited.has(a.zoneId)) queue.push(a.zoneId); });
+      }
+      assert.strictEqual(visited.size, gameData.zones.length,
+        `Only ${visited.size}/${gameData.zones.length} zones reachable from ${gameData.meta.startZone}`);
+    });
+
+    it("boss zones are danger zones", () => {
+      for (const boss of Object.values(gameData.bosses)) {
+        const zone = gameData.zones.find(z => z.id === boss.zoneId);
+        assert.ok(zone, `Boss ${boss.name}: zone ${boss.zoneId} not found`);
+        assert.strictEqual(zone!.isSafe, false,
+          `Boss ${boss.name} is in safe zone ${zone!.name}`);
+      }
+    });
+
+    it("economy balance: cheapest shop item <= first quest reward", () => {
+      let minShopPrice = Infinity;
+      for (const shop of Object.values(gameData.shops)) {
+        for (const itemId of shop.items) {
+          const item = gameData.items[itemId] || gameData.equipment[itemId];
+          if (item && item.buyPrice < minShopPrice) minShopPrice = item.buyPrice;
+        }
+      }
+      const questRewards = Object.values(gameData.quests).map(q => q.rewards.gold).sort((a, b) => a - b);
+      const firstQuestGold = questRewards[0] || 0;
+      assert.ok(minShopPrice <= firstQuestGold + gameData.meta.startGold,
+        `Cheapest item (${minShopPrice}G) costs more than start gold (${gameData.meta.startGold}G) + first quest (${firstQuestGold}G)`);
+    });
+  });
 });
