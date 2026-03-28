@@ -22,6 +22,7 @@ export interface PlayerData {
   equipment: { weapon: string | null; armor: string | null; accessory: string | null };
   inventory: InventoryItem[];
   questProgress: Record<string, QuestState>;
+  npcMemories: Record<string, any>;  // NPCMemory per NPC
   lastLogin: number;
 }
 
@@ -71,6 +72,7 @@ export function defaultPlayerData(userId: string, name: string): PlayerData {
       { itemId: "potion-001", name: "回復薬", quantity: 3, type: "consumable" },
     ],
     questProgress: {},
+    npcMemories: {},
     lastLogin: Date.now(),
   };
 }

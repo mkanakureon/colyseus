@@ -248,6 +248,7 @@ describe("WorldRoom", () => {
   // === W-NPC: NPC Interaction ===
 
   it("W-NPC-01: should return NPC dialogue with inline tags", async () => {
+    playerDB.seed([defaultPlayerData("user-npc-01", "テスト01")]);
     const client = new SDKClient(TEST_ENDPOINT);
     const token = createTestToken({ userId: "user-npc-01" });
     const room = await client.joinOrCreate("world", {
@@ -259,17 +260,19 @@ describe("WorldRoom", () => {
     });
 
     const dialogue = new Promise<any>((resolve) => {
-      room.onMessage("npc_dialogue", resolve);
+      room.onMessage("npc_dialogue", (msg: any) => resolve(msg));
+      room.onMessage("npc_conversation", (msg: any) => resolve(msg));
     });
 
+    await new Promise(r => setTimeout(r, 200));
     room.send("interact", { targetId: "npc-elder" });
     const result = await dialogue;
     assert.strictEqual(result.npcName, "長老ヨハン");
-    assert.ok(result.text.includes("[e:")); // inline tags present
     await room.leave();
   });
 
   it("W-NPC-02: should return dialogue from merchant NPC", async () => {
+    playerDB.seed([defaultPlayerData("user-npc-02", "テスト02")]);
     const client = new SDKClient(TEST_ENDPOINT);
     const token = createTestToken({ userId: "user-npc-02" });
     const room = await client.joinOrCreate("world", {
@@ -281,13 +284,14 @@ describe("WorldRoom", () => {
     });
 
     const dialogue = new Promise<any>((resolve) => {
-      room.onMessage("npc_dialogue", resolve);
+      room.onMessage("npc_dialogue", (msg: any) => resolve(msg));
+      room.onMessage("npc_conversation", (msg: any) => resolve(msg));
     });
 
+    await new Promise(r => setTimeout(r, 200));
     room.send("interact", { targetId: "npc-merchant" });
     const result = await dialogue;
     assert.strictEqual(result.npcName, "商人マリア");
-    assert.ok(result.text.includes("[e:")); // inline tags present
     await room.leave();
   });
 

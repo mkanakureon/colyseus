@@ -71,13 +71,19 @@ describe("Integration E2E — Full Game Flow", function () {
     // ═══ 2. NPC DIALOGUE ═══
     log.section("2. NPC Dialogue");
 
-    const npcMsg = wait<any>(worldVillage, "npc_dialogue");
+    const npcMsg = new Promise<any>((resolve) => {
+      worldVillage.onMessage("npc_dialogue", resolve);
+      worldVillage.onMessage("npc_conversation", resolve);
+    });
     worldVillage.send("interact", { targetId: "npc-elder" });
     const elder = await npcMsg;
     assert.strictEqual(elder.npcName, "長老ヨハン");
-    log.player("アキラ", `${elder.npcName}と会話`, "npc_dialogue", { npc: elder.npcName, text: elder.text });
+    log.player("アキラ", `${elder.npcName}と会話`, "npc_dialogue", { npc: elder.npcName, text: elder.text || elder.nodes?.[0]?.text });
 
-    const npcMsg2 = wait<any>(worldVillage, "npc_dialogue");
+    const npcMsg2 = new Promise<any>((resolve) => {
+      worldVillage.onMessage("npc_dialogue", resolve);
+      worldVillage.onMessage("npc_conversation", resolve);
+    });
     worldVillage.send("interact", { targetId: "npc-merchant" });
     const merchant = await npcMsg2;
     assert.strictEqual(merchant.npcName, "商人マリア");

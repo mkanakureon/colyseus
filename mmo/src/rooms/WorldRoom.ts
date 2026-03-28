@@ -13,6 +13,7 @@ import { ShopManager } from "../systems/ShopManager.ts";
 import { EquipmentManager } from "../systems/EquipmentManager.ts";
 import { QuestManager } from "../systems/QuestManager.ts";
 import { DeathManager } from "../systems/DeathManager.ts";
+import { NPCConversationManager } from "../systems/NPCConversationManager.ts";
 import type { WorldMoveRequest, WorldInteractRequest, WorldExpressionRequest, WorldPoseRequest, AppError } from "../types/messages.ts";
 
 interface WorldRoomOptions {
@@ -44,6 +45,7 @@ export class WorldRoom extends Room<WorldState> {
   private equipMgr!: EquipmentManager;
   private questMgr!: QuestManager;
   private deathMgr!: DeathManager;
+  private npcConvMgr!: NPCConversationManager;
 
   // userId → sessionId mapping
   private userToSession = new Map<string, string>();
@@ -66,6 +68,7 @@ export class WorldRoom extends Room<WorldState> {
     this.equipMgr = new EquipmentManager(this.gameData);
     this.questMgr = new QuestManager(this.gameData);
     this.deathMgr = new DeathManager(this.gameData);
+    this.npcConvMgr = new NPCConversationManager(this.gameData);
 
     // Load NPCs
     if (options.npcs) {
@@ -183,10 +186,47 @@ export class WorldRoom extends Room<WorldState> {
     client.send("zone_change", { zoneId: adjacent.zoneId, zoneName: "" });
   }
 
-  private handleInteract(client: Client, data: WorldInteractRequest) {
-    const dialogues = this.npcDialogues.get(data.targetId);
+  private async handleInteract(client: Client, data: WorldInteractRequest) {
     const npc = this.state.npcs.get(data.targetId);
-    if (!dialogues || !npc) {
+    if (!npc) {
+      client.send("error", { code: "NPC_NOT_FOUND", message: "NPC が見つかりません" } satisfies AppError);
+      return;
+    }
+
+    // Try conversation pool system first
+    const pool = this.gameData.npcConversations?.[data.targetId];
+    if (pool && (pool.daily?.length > 0 || pool.contextual?.length > 0 || pool.special?.length > 0)) {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const pd = await this.playerDB.findByUserId(player.userId);
+      if (!pd) return;
+
+      const memory = this.npcConvMgr.getMemory(pd, data.targetId);
+      const selection = this.npcConvMgr.selectConversation(pool, memory, pd);
+
+      if (selection) {
+        this.npcConvMgr.updateMemory(memory, selection.conversation.id, 5); // +5 relation per talk
+        await this.playerDB.save(pd);
+
+        client.send("npc_conversation", {
+          npcId: npc.id,
+          npcName: npc.name,
+          conversationId: selection.conversation.id,
+          source: selection.source,
+          label: selection.conversation.label,
+          nodes: selection.conversation.nodes,
+          memory: {
+            relationScore: memory.relationScore,
+            interactionCount: memory.interactionCount,
+          },
+        });
+        return;
+      }
+    }
+
+    // Fallback: legacy dialogue array
+    const dialogues = this.npcDialogues.get(data.targetId);
+    if (!dialogues || dialogues.length === 0) {
       client.send("error", { code: "NPC_NOT_FOUND", message: "NPC が見つかりません" } satisfies AppError);
       return;
     }

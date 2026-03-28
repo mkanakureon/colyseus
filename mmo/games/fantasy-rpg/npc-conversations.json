@@ -1,0 +1,170 @@
+{
+  "npc-elder": {
+    "npcId": "npc-elder",
+    "daily": [
+      {
+        "id": "elder_daily_1",
+        "poolType": "daily",
+        "label": "平和な日常",
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:smile]おお、また来たか。", "emotion": "happy" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "今日も村は平和じゃ。[click]畑の作物も順調に育っておる。", "emotion": "neutral" },
+          { "id": "n2", "speaker": "長老ヨハン", "text": "[e:smile]お主も元気そうで何よりじゃ。", "emotion": "happy" }
+        ]
+      },
+      {
+        "id": "elder_daily_2",
+        "poolType": "daily",
+        "label": "森の魔物の話",
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:serious]最近、北の森から不穏な気配がするのじゃ。", "emotion": "neutral" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "[e:sad]若い者たちが心配でのう…", "emotion": "sad" },
+          {
+            "id": "n2", "speaker": "長老ヨハン", "text": "お主、もし森に行くなら気をつけてくれ。",
+            "emotion": "neutral",
+            "choices": [
+              { "label": "任せてください", "next": "n3a" },
+              { "label": "一人では不安です", "next": "n3b" }
+            ]
+          },
+          { "id": "n3a", "speaker": "長老ヨハン", "text": "[e:smile]おお、頼もしいのう！", "emotion": "happy" },
+          { "id": "n3b", "speaker": "長老ヨハン", "text": "[e:smile]仲間を見つけるのじゃ。一人より二人、二人より三人じゃ。", "emotion": "happy" }
+        ]
+      },
+      {
+        "id": "elder_daily_3",
+        "poolType": "daily",
+        "label": "昔話",
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:normal]この村はのう、わしの爺さんの代に作られたんじゃ。", "emotion": "neutral" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "当時は何もない荒野じゃった。[click]それが今やこんな立派な村に。", "emotion": "neutral" },
+          { "id": "n2", "speaker": "長老ヨハン", "text": "[e:smile]人の力とは大したもんじゃ。", "emotion": "happy" }
+        ]
+      }
+    ],
+    "contextual": [
+      {
+        "id": "elder_ctx_quest_active",
+        "poolType": "contextual",
+        "label": "ゴブリン討伐中の激励",
+        "condition": { "questActive": ["Q-001"] },
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:serious]ゴブリン退治の調子はどうじゃ？", "emotion": "neutral" },
+          {
+            "id": "n1", "speaker": "長老ヨハン", "text": "無理はするなよ。[click]やられたら元も子もないからのう。",
+            "emotion": "neutral",
+            "choices": [
+              { "label": "順調です", "next": "n2a" },
+              { "label": "苦戦しています", "next": "n2b" }
+            ]
+          },
+          { "id": "n2a", "speaker": "長老ヨハン", "text": "[e:smile]それは頼もしい！期待しておるぞ。", "emotion": "happy" },
+          { "id": "n2b", "speaker": "長老ヨハン", "text": "[e:sad]そうか…[click][e:smile]マリアの店で回復薬を買ってから行くとよい。", "emotion": "sad" }
+        ]
+      },
+      {
+        "id": "elder_ctx_quest_done",
+        "poolType": "contextual",
+        "label": "ゴブリン討伐完了後の感謝",
+        "condition": { "questFlags": ["Q-001"], "relationMin": 0 },
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:smile]おお！ゴブリンを倒してくれたんじゃな！", "emotion": "happy" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "村のみんなが感謝しておる。[click]お主は本当に頼りになるのう。", "emotion": "happy" },
+          { "id": "n2", "speaker": "長老ヨハン", "text": "[e:serious]じゃが…もっと奥には強い魔物がおるらしい。[click][e:smile]お主ならきっと大丈夫じゃ。", "emotion": "neutral" }
+        ]
+      },
+      {
+        "id": "elder_ctx_high_relation",
+        "poolType": "contextual",
+        "label": "関係値が高い時",
+        "condition": { "relationMin": 30 },
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:smile]おお、お主か。最近よく顔を見せてくれるのう。", "emotion": "happy" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "実はな…[click][e:serious]ここだけの話じゃが、", "emotion": "neutral" },
+          { "id": "n2", "speaker": "長老ヨハン", "text": "北の遺跡の奥に、古代の宝が眠っているという言い伝えがある。", "emotion": "neutral" },
+          { "id": "n3", "speaker": "長老ヨハン", "text": "[e:smile]信頼できるお主にだけ教えるんじゃ。", "emotion": "happy" }
+        ]
+      }
+    ],
+    "special": [
+      {
+        "id": "elder_special_first_meet",
+        "poolType": "special",
+        "label": "初回会話",
+        "condition": { "once": true },
+        "nodes": [
+          { "id": "n0", "speaker": "長老ヨハン", "text": "[e:surprised]おお…見慣れぬ顔じゃな。", "emotion": "surprised" },
+          { "id": "n1", "speaker": "長老ヨハン", "text": "[e:smile]ようこそ、はじまりの村へ。わしは長老のヨハンじゃ。", "emotion": "happy" },
+          { "id": "n2", "speaker": "長老ヨハン", "text": "この村は小さいが、温かい人々が暮らしておる。[click]ゆっくりしていくとよい。", "emotion": "neutral" },
+          {
+            "id": "n3", "speaker": "長老ヨハン", "text": "[e:serious]じゃが…最近、北の森から魔物が出るようになっての。",
+            "emotion": "neutral",
+            "choices": [
+              { "label": "俺が退治しましょう", "next": "n4a" },
+              { "label": "それは大変ですね", "next": "n4b" }
+            ]
+          },
+          { "id": "n4a", "speaker": "長老ヨハン", "text": "[e:smile]おお！なんと頼もしい！[click]ならばひとつ頼みたいことがあるんじゃが…", "emotion": "happy" },
+          { "id": "n4b", "speaker": "長老ヨハン", "text": "[e:sad]そうなんじゃ…[click][e:normal]もしお主が力を貸してくれるなら、話を聞いてくれんか。", "emotion": "sad" }
+        ]
+      }
+    ]
+  },
+  "npc-merchant": {
+    "npcId": "npc-merchant",
+    "daily": [
+      {
+        "id": "merchant_daily_1",
+        "poolType": "daily",
+        "label": "商売の調子",
+        "nodes": [
+          { "id": "n0", "speaker": "商人マリア", "text": "[e:smile]いらっしゃい！今日も元気ね。", "emotion": "happy" },
+          { "id": "n1", "speaker": "商人マリア", "text": "最近は冒険者が増えて、回復薬がよく売れるのよ。[click]嬉しい悲鳴ってやつね。", "emotion": "happy" }
+        ]
+      },
+      {
+        "id": "merchant_daily_2",
+        "poolType": "daily",
+        "label": "仕入れの話",
+        "nodes": [
+          { "id": "n0", "speaker": "商人マリア", "text": "[e:normal]王都から新しい商品が届いたの。", "emotion": "neutral" },
+          { "id": "n1", "speaker": "商人マリア", "text": "[e:smile]よかったら見ていって！", "emotion": "happy" }
+        ]
+      },
+      {
+        "id": "merchant_daily_3",
+        "poolType": "daily",
+        "label": "薬草の話",
+        "nodes": [
+          { "id": "n0", "speaker": "商人マリア", "text": "[e:normal]もし森で薬草を見つけたら、買い取るわよ。", "emotion": "neutral" },
+          { "id": "n1", "speaker": "商人マリア", "text": "[e:smile]いい素材があれば、いい回復薬が作れるの。", "emotion": "happy" }
+        ]
+      }
+    ],
+    "contextual": [
+      {
+        "id": "merchant_ctx_low_hp",
+        "poolType": "contextual",
+        "label": "関係値が低い時",
+        "condition": { "relationMax": -10 },
+        "nodes": [
+          { "id": "n0", "speaker": "商人マリア", "text": "[e:normal]…いらっしゃい。", "emotion": "neutral" },
+          { "id": "n1", "speaker": "商人マリア", "text": "何かお探し？", "emotion": "neutral" }
+        ]
+      }
+    ],
+    "special": [
+      {
+        "id": "merchant_special_first",
+        "poolType": "special",
+        "label": "初回会話",
+        "condition": { "once": true },
+        "nodes": [
+          { "id": "n0", "speaker": "商人マリア", "text": "[e:smile][p:wave]あら、新顔さんね！", "emotion": "happy" },
+          { "id": "n1", "speaker": "商人マリア", "text": "私はマリア。この村で商いをしているの。", "emotion": "neutral" },
+          { "id": "n2", "speaker": "商人マリア", "text": "[e:smile]冒険に必要なものがあれば、いつでも声をかけてね！", "emotion": "happy" }
+        ]
+      }
+    ]
+  }
+}

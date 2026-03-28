@@ -1,0 +1,88 @@
+[
+  {
+    "t": 1,
+    "type": "section",
+    "text": "1. Login & Create"
+  },
+  {
+    "t": 12,
+    "type": "section",
+    "text": "2. NPC Dialogue"
+  },
+  {
+    "t": 13,
+    "type": "section",
+    "text": "3. Shop"
+  },
+  {
+    "t": 14,
+    "type": "section",
+    "text": "4. Equipment"
+  },
+  {
+    "t": 15,
+    "type": "section",
+    "text": "5. Quest"
+  },
+  {
+    "t": 16,
+    "type": "section",
+    "text": "6. Movement"
+  },
+  {
+    "t": 16,
+    "type": "section",
+    "text": "7. Explore (Forest)"
+  },
+  {
+    "t": 729,
+    "type": "section",
+    "text": "8. Battle"
+  },
+  {
+    "t": 935,
+    "type": "section",
+    "text": "9. Item Usage"
+  },
+  {
+    "t": 936,
+    "type": "section",
+    "text": "10. Battle Item Use"
+  },
+  {
+    "t": 1646,
+    "type": "section",
+    "text": "11. Death"
+  },
+  {
+    "t": 1857,
+    "type": "section",
+    "text": "12. Status & Inventory"
+  },
+  {
+    "t": 1858,
+    "type": "section",
+    "text": "13. Quest"
+  },
+  {
+    "t": 1859,
+    "type": "section",
+    "text": "14. Chat"
+  },
+  {
+    "t": 2069,
+    "type": "player",
+    "player": "ミサキ",
+    "action": "chat_receive",
+    "detail": {
+      "sender": "アキラ",
+      "text": "Hello from battle!"
+    },
+    "text": "チャット受信: アキラ: Hello from battle!"
+  },
+  {
+    "t": 2070,
+    "type": "section",
+    "text": "Done"
+  }
+]

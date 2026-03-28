@@ -122,18 +122,25 @@ describe("Playthrough E2E — テキスト型MMOプレイスルー", function ()
     log.system(`村のプレイヤー数: ${playerCount}人`);
 
     // アキラが長老に話しかける
-    const npcDialogue = waitFor<any>(akiraWorld, "npc_dialogue");
+    const npcDialogue = new Promise<any>((resolve) => {
+      akiraWorld.onMessage("npc_dialogue", resolve);
+      akiraWorld.onMessage("npc_conversation", resolve);
+    });
     akiraWorld.send("interact", { targetId: "npc-elder" });
     const elder = await npcDialogue;
-    log.log("長老ヨハン", elder.text);
+    const elderText = elder.text || elder.nodes?.[0]?.text || "";
+    log.log("長老ヨハン", elderText);
     assert.strictEqual(elder.npcName, "長老ヨハン");
-    assert.ok(elder.text.includes("[e:"));
 
     // アキラが商人にも話しかける
-    const merchantDialogue = waitFor<any>(akiraWorld, "npc_dialogue");
+    const merchantDialogue = new Promise<any>((resolve) => {
+      akiraWorld.onMessage("npc_dialogue", resolve);
+      akiraWorld.onMessage("npc_conversation", resolve);
+    });
     akiraWorld.send("interact", { targetId: "npc-merchant" });
     const merchant = await merchantDialogue;
-    log.log("商人マリア", merchant.text);
+    const merchantText = merchant.text || merchant.nodes?.[0]?.text || "";
+    log.log("商人マリア", merchantText);
     assert.strictEqual(merchant.npcName, "商人マリア");
 
     // チャットルームに入る

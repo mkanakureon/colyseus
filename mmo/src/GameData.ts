@@ -120,6 +120,7 @@ export interface GameData {
   shops: Record<string, ShopDef>;
   quests: Record<string, QuestDef>;
   bosses: Record<string, BossDef>;
+  npcConversations: Record<string, any>;  // NPCConversationPool per NPC
 }
 
 // ── ローダー ──
@@ -142,6 +143,9 @@ export function loadGameData(gameDir: string): GameData {
     shops: read("shops.json"),
     quests: read("quests.json"),
     bosses: read("bosses.json"),
+    npcConversations: fs.existsSync(path.join(gameDir, "npc-conversations.json"))
+      ? read("npc-conversations.json")
+      : {},
   };
 }
 
