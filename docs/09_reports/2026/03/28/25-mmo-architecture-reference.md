@@ -105,6 +105,141 @@ mmo/
 
 ---
 
+## Colyseus との境界線
+
+### 何が Colyseus で、何が mmo のコードか
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ██████ Colyseus フレームワーク（変更しない）                    │
+│  ░░░░░░ mmo/ のコード（自分たちが書いた）                       │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ Client                                              │    │
+│  │  ██ @colyseus/sdk  → Client, Room (SDK)             │    │
+│  │  ░░ client-cli.ts  → 画面描画, 入力, ログ出力         │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │ WebSocket (██ Colyseus transport) │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │ Server                                              │    │
+│  │  ██ Server, matchMaker, LocalPresence, LocalDriver  │    │
+│  │  ██ Room base class (lifecycle: onAuth/onJoin/...)  │    │
+│  │  ██ @colyseus/schema (state sync: @type decorator)  │    │
+│  │  ░░ createServer.ts  → DI + Room 定義の組み立て       │    │
+│  │                                                     │    │
+│  │  ░░ WorldRoom.ts   → onMessage ハンドラ 20種         │    │
+│  │  ░░ BattleRoom.ts  → ターン制戦闘ロジック             │    │
+│  │  ░░ ChatRoom.ts    → チャネル振り分け                │    │
+│  │  ░░ TradeRoom.ts   → オファー管理                   │    │
+│  │     │                                               │    │
+│  │     │ Colyseus に依存しない純粋ロジック ↓              │    │
+│  │  ░░ systems/*      → 9個のマネージャークラス          │    │
+│  │  ░░ data/*         → マスターデータ定義               │    │
+│  │  ░░ persistence/*  → DB インターフェース + InMemory    │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ Test                                                │    │
+│  │  ██ @colyseus/sdk (SDKClient) → Room 結合テスト      │    │
+│  │  ██ @colyseus/core (Server, matchMaker) → テスト起動  │    │
+│  │  ░░ テストコード, モック, TestLogger                   │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Colyseus が提供するもの（██ 変更しない）
+
+| 機能 | パッケージ | 用途 |
+|------|-----------|------|
+| **Server** | `@colyseus/core` | HTTP/WebSocket サーバー起動 |
+| **Room** | `@colyseus/core` | Room ライフサイクル（onCreate, onAuth, onJoin, onLeave, onMessage, onDispose） |
+| **matchMaker** | `@colyseus/core` | Room のマッチメイキング（joinOrCreate, joinById, query） |
+| **Presence** | `@colyseus/core` / `redis-presence` | プロセス間の状態共有（LocalPresence = 単体, RedisPresence = 分散） |
+| **Driver** | `@colyseus/core` / `redis-driver` | Room キャッシュ管理（LocalDriver = メモリ, RedisDriver = 分散） |
+| **@type() デコレータ** | `@colyseus/schema` | State の自動シリアライズ・クライアント同期 |
+| **Client (SDK)** | `@colyseus/sdk` | ブラウザ/Node.js からの WebSocket 接続 |
+| **Transport** | `@colyseus/ws-transport` | WebSocket プロトコル層 |
+
+**mmo コードから Colyseus API を呼ぶ箇所:**
+
+| 呼び出し元 | Colyseus API | 用途 |
+|-----------|-------------|------|
+| `createServer.ts` | `new Server()`, `server.define()`, `matchMaker.setup()` | サーバー組み立て |
+| Room クラス | `extends Room<State>` | Room のベースクラス |
+| Room クラス | `this.setState()`, `this.broadcast()`, `client.send()` | 状態管理 + メッセージ送信 |
+| Room クラス | `this.onMessage("type", handler)` | メッセージ受信ハンドラ登録 |
+| Schema クラス | `@type("string")`, `MapSchema` | 状態スキーマ定義 |
+| テスト | `new SDKClient()`, `client.joinOrCreate()`, `room.send()` | クライアント接続 |
+
+### mmo が提供するもの（░░ 自分たちのコード）
+
+| レイヤー | Colyseus 依存 | 説明 |
+|---------|:------------:|------|
+| **Room ハンドラ** | ✅ | `extends Room` + `onMessage` で Colyseus に密結合 |
+| **Schema** | ✅ | `@type()` デコレータで Colyseus に密結合 |
+| **Systems** | ❌ | **Colyseus を一切 import しない**。純粋な TypeScript クラス |
+| **Data** | ❌ | 静的データ定義。依存なし |
+| **Persistence** | ❌ | `IPlayerPersistence` インターフェース。依存なし |
+| **Auth** | ❌ | JWT ライブラリのみ。Colyseus 非依存 |
+| **TestLogger** | ❌ | JSON ログ出力。依存なし |
+
+### 境界のルール
+
+```
+                    Colyseus 依存
+                    ┌──────────┐
+  Room (4ファイル)    │ ✅ 依存   │  ← Colyseus の Room/Client/Schema を使う
+  Schema (3ファイル)  │ ✅ 依存   │  ← @type() デコレータを使う
+  createServer.ts   │ ✅ 依存   │  ← Server/matchMaker を使う
+                    └──────────┘
+                        │
+                   onMessage ハンドラが呼ぶ
+                        │
+                        ▼
+                    Colyseus 非依存
+                    ┌──────────┐
+  Systems (9ファイル) │ ❌ 非依存  │  ← import に "colyseus" が一切ない
+  Data (9ファイル)    │ ❌ 非依存  │
+  Persistence       │ ❌ 非依存  │
+  Auth              │ ❌ 非依存  │
+                    └──────────┘
+```
+
+**この境界の意味:**
+- **Systems 以下を Colyseus なしでテストできる** — CharacterCreator, LevelSystem, ShopManager 等は Mocha で直接呼ぶだけ。Server 起動不要
+- **Colyseus を別のフレームワークに差し替えても Systems/Data/Persistence はそのまま使える**
+- **Room は薄いアダプター** — メッセージを受け取って System に渡し、結果をクライアントに返すだけ
+
+### ファイル別の Colyseus import 有無
+
+| ファイル | `colyseus` import | `@colyseus/schema` import | `@colyseus/core` import |
+|---------|:-:|:-:|:-:|
+| WorldRoom.ts | `Room` | — | `Client` (type) |
+| BattleRoom.ts | `Room` | — | `Client` (type) |
+| ChatRoom.ts | `Room` | `Schema, type, MapSchema` | `Client` (type) |
+| TradeRoom.ts | `Room` | `Schema, type, MapSchema` | `Client` (type) |
+| WorldState.ts | — | `Schema, type, MapSchema` | — |
+| PlayerState.ts | — | `Schema, type` | — |
+| BattleState.ts | — | `Schema, type, MapSchema` | — |
+| createServer.ts | — | — | `Server, matchMaker, ...` |
+| **CharacterCreator.ts** | — | — | — |
+| **LevelSystem.ts** | — | — | — |
+| **EncounterManager.ts** | — | — | — |
+| **ItemManager.ts** | — | — | — |
+| **DeathManager.ts** | — | — | — |
+| **ShopManager.ts** | — | — | — |
+| **EquipmentManager.ts** | — | — | — |
+| **QuestManager.ts** | — | — | — |
+| **PartyManager.ts** | — | — | — |
+| **全 data/*.ts** | — | — | — |
+| **PlayerPersistence.ts** | — | — | — |
+| **KaedevnAuthAdapter.ts** | — | — | — |
+
+**太字 = Colyseus 非依存（19ファイル / 28ファイル中 = 68%）**
+
+---
+
 ## レイヤー構成
 
 ```
