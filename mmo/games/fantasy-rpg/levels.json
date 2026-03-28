@@ -1,0 +1,42 @@
+[
+  {
+    "level": 1,
+    "totalExp": 0
+  },
+  {
+    "level": 2,
+    "totalExp": 20
+  },
+  {
+    "level": 3,
+    "totalExp": 70
+  },
+  {
+    "level": 4,
+    "totalExp": 170
+  },
+  {
+    "level": 5,
+    "totalExp": 350
+  },
+  {
+    "level": 6,
+    "totalExp": 650
+  },
+  {
+    "level": 7,
+    "totalExp": 1100
+  },
+  {
+    "level": 8,
+    "totalExp": 1750
+  },
+  {
+    "level": 9,
+    "totalExp": 2650
+  },
+  {
+    "level": 10,
+    "totalExp": 3850
+  }
+]

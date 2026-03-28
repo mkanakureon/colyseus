@@ -1,0 +1,468 @@
+[
+  {
+    "t": 1,
+    "type": "section",
+    "text": "1. Login & Create"
+  },
+  {
+    "t": 15,
+    "type": "player",
+    "player": "アキラ",
+    "action": "create",
+    "detail": {
+      "name": "アキラ",
+      "classType": "warrior",
+      "hp": 120,
+      "maxHp": 120,
+      "mp": 20,
+      "maxMp": 20,
+      "atk": 15,
+      "def": 12,
+      "mag": 3,
+      "spd": 8,
+      "gold": 100
+    },
+    "text": "戦士作成 HP:120 ATK:15"
+  },
+  {
+    "t": 15,
+    "type": "section",
+    "text": "2. NPC Dialogue"
+  },
+  {
+    "t": 16,
+    "type": "player",
+    "player": "アキラ",
+    "action": "npc_dialogue",
+    "detail": {
+      "npc": "長老ヨハン",
+      "text": "[e:smile]ようこそ、旅人よ。[click]この村は平和じゃが...[e:serious]北の森には気をつけるのじゃ。"
+    },
+    "text": "長老ヨハンと会話"
+  },
+  {
+    "t": 16,
+    "type": "player",
+    "player": "アキラ",
+    "action": "npc_dialogue",
+    "detail": {
+      "npc": "商人マリア"
+    },
+    "text": "商人マリアと会話"
+  },
+  {
+    "t": 16,
+    "type": "section",
+    "text": "3. Shop"
+  },
+  {
+    "t": 16,
+    "type": "player",
+    "player": "アキラ",
+    "action": "shop_list",
+    "detail": {
+      "items": [
+        "回復薬",
+        "薬草",
+        "木の剣",
+        "布の服"
+      ]
+    },
+    "text": "ショップ: 4品"
+  },
+  {
+    "t": 17,
+    "type": "player",
+    "player": "アキラ",
+    "action": "shop_buy",
+    "detail": {
+      "item": "sword-wood",
+      "gold": 50
+    },
+    "text": "木の剣を購入 Gold:50"
+  },
+  {
+    "t": 17,
+    "type": "player",
+    "player": "アキラ",
+    "action": "shop_buy",
+    "detail": {
+      "item": "armor-cloth",
+      "gold": 10
+    },
+    "text": "布の服を購入 Gold:10"
+  },
+  {
+    "t": 18,
+    "type": "player",
+    "player": "アキラ",
+    "action": "shop_sell",
+    "detail": {
+      "item": "potion-001",
+      "gold": 20
+    },
+    "text": "回復薬売却 Gold:20"
+  },
+  {
+    "t": 18,
+    "type": "section",
+    "text": "4. Equipment"
+  },
+  {
+    "t": 18,
+    "type": "player",
+    "player": "アキラ",
+    "action": "equip",
+    "detail": {
+      "item": "sword-wood",
+      "stats": {
+        "atk": 18,
+        "def": 12,
+        "mag": 3,
+        "spd": 8
+      }
+    },
+    "text": "木の剣装備 ATK:18"
+  },
+  {
+    "t": 20,
+    "type": "player",
+    "player": "アキラ",
+    "action": "equip",
+    "detail": {
+      "item": "armor-cloth",
+      "stats": {
+        "atk": 18,
+        "def": 15,
+        "mag": 3,
+        "spd": 8
+      }
+    },
+    "text": "布の服装備 DEF:15"
+  },
+  {
+    "t": 21,
+    "type": "player",
+    "player": "アキラ",
+    "action": "unequip",
+    "detail": {
+      "slot": "weapon"
+    },
+    "text": "武器外した ATK:15"
+  },
+  {
+    "t": 21,
+    "type": "player",
+    "player": "アキラ",
+    "action": "equip",
+    "detail": {
+      "item": "sword-wood"
+    },
+    "text": "再装備"
+  },
+  {
+    "t": 21,
+    "type": "section",
+    "text": "5. Quest"
+  },
+  {
+    "t": 21,
+    "type": "player",
+    "player": "アキラ",
+    "action": "quest_accept",
+    "detail": {
+      "questId": "Q-001"
+    },
+    "text": "クエスト受注: 森の脅威"
+  },
+  {
+    "t": 21,
+    "type": "section",
+    "text": "6. Movement"
+  },
+  {
+    "t": 22,
+    "type": "player",
+    "player": "アキラ",
+    "action": "move",
+    "detail": {
+      "to": "zone-002-forest"
+    },
+    "text": "北→霧の森"
+  },
+  {
+    "t": 22,
+    "type": "player",
+    "player": "アキラ",
+    "action": "move",
+    "detail": {
+      "to": "zone-003-market"
+    },
+    "text": "東→交易広場"
+  },
+  {
+    "t": 22,
+    "type": "player",
+    "player": "アキラ",
+    "action": "move_blocked",
+    "detail": {
+      "code": "ZONE_NO_ADJACENT"
+    },
+    "text": "西→行き止まり"
+  },
+  {
+    "t": 22,
+    "type": "section",
+    "text": "7. Explore (Forest)"
+  },
+  {
+    "t": 731,
+    "type": "player",
+    "player": "アキラ",
+    "action": "explore",
+    "detail": {
+      "type": "item",
+      "itemId": "herb-001",
+      "itemName": "薬草",
+      "quantity": 1
+    },
+    "text": "探索結果: item"
+  },
+  {
+    "t": 731,
+    "type": "section",
+    "text": "8. Battle"
+  },
+  {
+    "t": 938,
+    "type": "player",
+    "player": "アキラ",
+    "action": "battle_start",
+    "detail": {
+      "enemy": "ゴブリン",
+      "enemyHp": 10
+    },
+    "text": "戦闘開始 ゴブリン HP:10"
+  },
+  {
+    "t": 939,
+    "type": "player",
+    "player": "アキラ",
+    "action": "battle_win",
+    "detail": {
+      "exp": 25,
+      "gold": 10,
+      "drops": [
+        {
+          "itemId": "herb-001",
+          "name": "薬草"
+        }
+      ],
+      "levelUps": {
+        "akira": {
+          "levelsGained": 1,
+          "newLevel": 2,
+          "statChanges": {
+            "hp": 12,
+            "mp": 2,
+            "atk": 3,
+            "def": 2,
+            "mag": 0,
+            "spd": 1
+          }
+        }
+      },
+      "questProgress": {
+        "akira": [
+          {
+            "questId": "Q-001",
+            "objectiveIndex": 0,
+            "current": 1,
+            "required": 3,
+            "targetName": "ゴブリン",
+            "completed": false
+          }
+        ]
+      }
+    },
+    "text": "勝利！ +25EXP +10G ドロップ:薬草"
+  },
+  {
+    "t": 939,
+    "type": "player",
+    "player": "アキラ",
+    "action": "level_up",
+    "detail": {
+      "levelsGained": 1,
+      "newLevel": 2,
+      "statChanges": {
+        "hp": 12,
+        "mp": 2,
+        "atk": 3,
+        "def": 2,
+        "mag": 0,
+        "spd": 1
+      }
+    },
+    "text": "★ Lv UP! Lv.2"
+  },
+  {
+    "t": 939,
+    "type": "player",
+    "player": "アキラ",
+    "action": "quest_progress",
+    "detail": {
+      "questId": "Q-001",
+      "objectiveIndex": 0,
+      "current": 1,
+      "required": 3,
+      "targetName": "ゴブリン",
+      "completed": false
+    },
+    "text": "クエスト進捗: ゴブリン (1/3)"
+  },
+  {
+    "t": 940,
+    "type": "section",
+    "text": "9. Item Usage"
+  },
+  {
+    "t": 940,
+    "type": "player",
+    "player": "アキラ",
+    "action": "use_item",
+    "detail": {
+      "itemId": "potion-001",
+      "hp": 132
+    },
+    "text": "回復薬を使った！ HP が 0 回復した！"
+  },
+  {
+    "t": 941,
+    "type": "section",
+    "text": "10. Battle Item Use"
+  },
+  {
+    "t": 1148,
+    "type": "player",
+    "player": "アキラ",
+    "action": "battle_item",
+    "detail": {
+      "log": "回復薬を使った！ HP が 0 回復した！"
+    },
+    "text": "戦闘中にアイテム使用: 回復薬を使った！ HP が 0 回復した！"
+  },
+  {
+    "t": 1650,
+    "type": "player",
+    "player": "アキラ",
+    "action": "battle_flee",
+    "text": "逃走成功"
+  },
+  {
+    "t": 1651,
+    "type": "section",
+    "text": "11. Death"
+  },
+  {
+    "t": 1862,
+    "type": "player",
+    "player": "アキラ",
+    "action": "death",
+    "detail": {
+      "result": "lose"
+    },
+    "text": "全滅…"
+  },
+  {
+    "t": 1864,
+    "type": "section",
+    "text": "12. Status & Inventory"
+  },
+  {
+    "t": 1865,
+    "type": "player",
+    "player": "アキラ",
+    "action": "status",
+    "detail": {
+      "name": "アキラ",
+      "classType": "warrior",
+      "level": 2,
+      "exp": 25,
+      "hp": 132,
+      "maxHp": 132,
+      "mp": 22,
+      "maxMp": 22,
+      "atk": 21,
+      "def": 17,
+      "mag": 3,
+      "spd": 9,
+      "gold": 27,
+      "equipment": {
+        "weapon": "sword-wood",
+        "armor": "armor-cloth",
+        "accessory": null
+      },
+      "zoneId": "zone-001-village"
+    },
+    "text": "Lv.2 HP:132/132 ATK:21 Gold:27"
+  },
+  {
+    "t": 1866,
+    "type": "player",
+    "player": "アキラ",
+    "action": "inventory",
+    "detail": {
+      "items": [
+        {
+          "itemId": "herb-001",
+          "name": "薬草",
+          "quantity": 2,
+          "type": "material"
+        }
+      ]
+    },
+    "text": "所持品: 薬草x2"
+  },
+  {
+    "t": 1866,
+    "type": "section",
+    "text": "13. Quest"
+  },
+  {
+    "t": 1866,
+    "type": "player",
+    "player": "アキラ",
+    "action": "quest_log",
+    "detail": {
+      "Q-001": {
+        "questId": "Q-001",
+        "status": "active",
+        "progress": {
+          "obj_0": 1
+        }
+      }
+    },
+    "text": "クエストログ: Q-001 status=active"
+  },
+  {
+    "t": 1867,
+    "type": "section",
+    "text": "14. Chat"
+  },
+  {
+    "t": 2085,
+    "type": "player",
+    "player": "アキラ",
+    "action": "chat_send",
+    "detail": {
+      "text": "Hello from battle!"
+    },
+    "text": "チャット送信"
+  },
+  {
+    "t": 2088,
+    "type": "section",
+    "text": "Done"
+  }
+]

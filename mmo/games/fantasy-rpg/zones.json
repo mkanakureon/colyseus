@@ -1,0 +1,315 @@
+[
+  {
+    "id": "zone-001-village",
+    "name": "はじまりの村",
+    "description": "穏やかな風が吹く小さな村。石畳の広場に井戸がある。",
+    "maxPlayers": 50,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "north",
+        "zoneId": "zone-004-capital"
+      }
+    ],
+    "npcs": [
+      {
+        "id": "npc-elder",
+        "name": "長老ヨハン",
+        "expression": "normal",
+        "pose": "standing",
+        "x": 400,
+        "y": 300,
+        "dialogue": [
+          "[e:smile]ようこそ、旅人よ。[click]この村は平和じゃが...[e:serious]北の森には気をつけるのじゃ。",
+          "[e:sad]最近、森から魔物が出るようになってのう...[click][e:smile]お主なら大丈夫じゃろう！"
+        ],
+        "shop": null,
+        "quests": [
+          "Q-001",
+          "Q-003"
+        ]
+      },
+      {
+        "id": "npc-merchant",
+        "name": "商人マリア",
+        "expression": "smile",
+        "pose": "relaxed",
+        "x": 600,
+        "y": 350,
+        "dialogue": [
+          "[e:smile][p:wave]いらっしゃい！[click]何かお探しかしら？"
+        ],
+        "shop": "npc-merchant",
+        "quests": [
+          "Q-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "zone-002-forest",
+    "name": "霧の森",
+    "description": "薄暗い森の中。木々の隙間から霧が漂う。遠くで獣の唸り声が聞こえる。",
+    "maxPlayers": 30,
+    "isSafe": false,
+    "adjacentZones": [
+      {
+        "direction": "south",
+        "zoneId": "zone-005-ruins"
+      },
+      {
+        "direction": "east",
+        "zoneId": "zone-004-capital"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-003-market",
+    "name": "交易広場",
+    "description": "各地から商人が集まる活気ある広場。色とりどりの露店が並ぶ。",
+    "maxPlayers": 100,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "west",
+        "zoneId": "zone-004-capital"
+      }
+    ],
+    "npcs": [
+      {
+        "id": "npc-trader",
+        "name": "旅商人ロイド",
+        "expression": "grin",
+        "pose": "cool",
+        "x": 500,
+        "y": 400,
+        "dialogue": [
+          "[e:grin]よう！珍しいもんが入ったぜ。[click][e:wink]今なら特別価格だ。"
+        ],
+        "shop": "npc-trader",
+        "quests": [
+          "Q-004",
+          "Q-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "zone-004-capital",
+    "name": "王都セレス",
+    "description": "大陸最大の都市。石造りの城壁に囲まれた街には冒険者ギルドがある。",
+    "maxPlayers": 100,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "north",
+        "zoneId": "zone-007-port"
+      },
+      {
+        "direction": "south",
+        "zoneId": "zone-001-village"
+      },
+      {
+        "direction": "east",
+        "zoneId": "zone-003-market"
+      },
+      {
+        "direction": "west",
+        "zoneId": "zone-002-forest"
+      }
+    ],
+    "npcs": [
+      {
+        "id": "npc-blacksmith",
+        "name": "鍛冶屋ガルド",
+        "expression": "normal",
+        "pose": "standing",
+        "x": 300,
+        "y": 400,
+        "dialogue": [
+          "[e:normal]武器か？防具か？[click][e:smile]いい素材があれば何でも打つぜ。"
+        ],
+        "shop": null,
+        "quests": []
+      },
+      {
+        "id": "npc-guild",
+        "name": "ギルド受付嬢エリカ",
+        "expression": "smile",
+        "pose": "standing",
+        "x": 600,
+        "y": 300,
+        "dialogue": [
+          "[e:smile]冒険者ギルドへようこそ！[click]クエストボードを見ていきますか？"
+        ],
+        "shop": null,
+        "quests": []
+      }
+    ]
+  },
+  {
+    "id": "zone-005-ruins",
+    "name": "古代遺跡",
+    "description": "崩れかけた石柱が並ぶ遺跡。壁面に古代文字が刻まれている。",
+    "maxPlayers": 20,
+    "isSafe": false,
+    "adjacentZones": [
+      {
+        "direction": "north",
+        "zoneId": "zone-002-forest"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-006-cave",
+    "name": "海岸洞窟",
+    "description": "波の音が反響する薄暗い洞窟。奥から冷たい風が吹いてくる。",
+    "maxPlayers": 15,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "west",
+        "zoneId": "zone-007-port"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-007-port",
+    "name": "港町カイル",
+    "description": "潮風が心地よい港町。大きな帆船が停泊している。",
+    "maxPlayers": 80,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "north",
+        "zoneId": "zone-010-pass"
+      },
+      {
+        "direction": "south",
+        "zoneId": "zone-004-capital"
+      },
+      {
+        "direction": "east",
+        "zoneId": "zone-006-cave"
+      },
+      {
+        "direction": "west",
+        "zoneId": "zone-008-sewer"
+      }
+    ],
+    "npcs": [
+      {
+        "id": "npc-captain",
+        "name": "船長バルド",
+        "expression": "grin",
+        "pose": "cool",
+        "x": 400,
+        "y": 500,
+        "dialogue": [
+          "[e:grin]よう！どっかに行きてぇのか？[click][e:normal]…だが今は船が出せん。魔物のせいでな。"
+        ],
+        "shop": null,
+        "quests": []
+      }
+    ]
+  },
+  {
+    "id": "zone-008-sewer",
+    "name": "地下水路",
+    "description": "王都の下に広がる地下水路。暗く湿った通路にネズミの影が走る。",
+    "maxPlayers": 15,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "east",
+        "zoneId": "zone-007-port"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-009-volcano",
+    "name": "火山地帯",
+    "description": "赤く染まった大地。地面から蒸気が噴き出し、硫黄の匂いが立ち込める。",
+    "maxPlayers": 20,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "west",
+        "zoneId": "zone-010-pass"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-010-pass",
+    "name": "竜の峠",
+    "description": "切り立った崖の間を縫う険しい山道。風が強く、遠くに火山が見える。",
+    "maxPlayers": 30,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "north",
+        "zoneId": "zone-012-temple"
+      },
+      {
+        "direction": "south",
+        "zoneId": "zone-007-port"
+      },
+      {
+        "direction": "east",
+        "zoneId": "zone-009-volcano"
+      },
+      {
+        "direction": "west",
+        "zoneId": "zone-011-ice"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-011-ice",
+    "name": "氷結洞窟",
+    "description": "凍りついた洞窟。氷柱が天井から垂れ下がり、息が白く凍る。",
+    "maxPlayers": 15,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "east",
+        "zoneId": "zone-010-pass"
+      }
+    ],
+    "npcs": []
+  },
+  {
+    "id": "zone-012-temple",
+    "name": "古代神殿",
+    "description": "大陸の最奥にそびえる荘厳な神殿。古代文明の叡智が眠ると言われている。",
+    "maxPlayers": 10,
+    "isSafe": true,
+    "adjacentZones": [
+      {
+        "direction": "south",
+        "zoneId": "zone-010-pass"
+      }
+    ],
+    "npcs": [
+      {
+        "id": "npc-sage",
+        "name": "古代の賢者",
+        "expression": "normal",
+        "pose": "standing",
+        "x": 500,
+        "y": 300,
+        "dialogue": [
+          "[e:normal]...よくぞここまで来た。[click][e:smile]お前たちなら、この大陸を救えるかもしれぬ。"
+        ],
+        "shop": null,
+        "quests": []
+      }
+    ]
+  }
+]

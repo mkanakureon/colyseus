@@ -1,0 +1,20 @@
+{
+  "id": "fantasy-rpg",
+  "name": "アルカディア大陸",
+  "description": "古代魔法文明が栄えた大陸を舞台にしたテキスト型MMO",
+  "version": "1.0.0",
+  "startZone": "zone-001-village",
+  "startGold": 100,
+  "deathPenaltyRate": 0.1,
+  "respawnZone": "zone-001-village",
+  "chatRateLimit": 500,
+  "maxMessageLength": 200,
+  "startInventory": [
+    {
+      "itemId": "potion-001",
+      "name": "回復薬",
+      "quantity": 3,
+      "type": "consumable"
+    }
+  ]
+}

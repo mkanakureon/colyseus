@@ -1,0 +1,59 @@
+{
+  "potion-001": {
+    "id": "potion-001",
+    "name": "回復薬",
+    "description": "HP を 50 回復する",
+    "type": "consumable",
+    "usableInBattle": true,
+    "effect": {
+      "type": "heal_hp",
+      "value": 50
+    },
+    "buyPrice": 20,
+    "sellPrice": 10
+  },
+  "potion-002": {
+    "id": "potion-002",
+    "name": "上級回復薬",
+    "description": "HP を 150 回復する",
+    "type": "consumable",
+    "usableInBattle": true,
+    "effect": {
+      "type": "heal_hp",
+      "value": 150
+    },
+    "buyPrice": 80,
+    "sellPrice": 40
+  },
+  "ether-001": {
+    "id": "ether-001",
+    "name": "魔力の水",
+    "description": "MP を 30 回復する",
+    "type": "consumable",
+    "usableInBattle": true,
+    "effect": {
+      "type": "heal_mp",
+      "value": 30
+    },
+    "buyPrice": 30,
+    "sellPrice": 15
+  },
+  "herb-001": {
+    "id": "herb-001",
+    "name": "薬草",
+    "description": "素材。薬の原料になる",
+    "type": "material",
+    "usableInBattle": false,
+    "buyPrice": 5,
+    "sellPrice": 2
+  },
+  "iron-ore": {
+    "id": "iron-ore",
+    "name": "鉄鉱石",
+    "description": "素材。武器や防具に使う",
+    "type": "material",
+    "usableInBattle": false,
+    "buyPrice": 10,
+    "sellPrice": 5
+  }
+}

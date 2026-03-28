@@ -1,0 +1,53 @@
+{
+  "warrior": {
+    "name": "戦士",
+    "hp": 120,
+    "mp": 20,
+    "atk": 15,
+    "def": 12,
+    "mag": 3,
+    "spd": 8,
+    "growth": {
+      "hp": 12,
+      "mp": 2,
+      "atk": 3,
+      "def": 2,
+      "mag": 0,
+      "spd": 1
+    }
+  },
+  "mage": {
+    "name": "魔法使い",
+    "hp": 80,
+    "mp": 60,
+    "atk": 5,
+    "def": 5,
+    "mag": 15,
+    "spd": 10,
+    "growth": {
+      "hp": 5,
+      "mp": 8,
+      "atk": 1,
+      "def": 1,
+      "mag": 3,
+      "spd": 1
+    }
+  },
+  "thief": {
+    "name": "盗賊",
+    "hp": 90,
+    "mp": 30,
+    "atk": 10,
+    "def": 7,
+    "mag": 5,
+    "spd": 15,
+    "growth": {
+      "hp": 8,
+      "mp": 3,
+      "atk": 2,
+      "def": 1,
+      "mag": 1,
+      "spd": 3
+    }
+  }
+}

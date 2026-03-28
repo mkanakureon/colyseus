@@ -1,0 +1,22 @@
+{
+  "npc-merchant": {
+    "npcId": "npc-merchant",
+    "npcName": "商人マリア",
+    "items": [
+      "potion-001",
+      "herb-001",
+      "sword-wood",
+      "armor-cloth"
+    ]
+  },
+  "npc-trader": {
+    "npcId": "npc-trader",
+    "npcName": "旅商人ロイド",
+    "items": [
+      "potion-002",
+      "ether-001",
+      "sword-iron",
+      "armor-chain"
+    ]
+  }
+}

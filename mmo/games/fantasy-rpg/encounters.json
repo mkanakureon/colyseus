@@ -1,0 +1,50 @@
+{
+  "zone-002-forest": {
+    "encounterRate": 0.5,
+    "itemFindRate": 0.2,
+    "findableItems": [
+      {
+        "itemId": "herb-001",
+        "quantity": 1
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "goblin",
+        "weight": 60
+      },
+      {
+        "enemyId": "bat",
+        "weight": 30
+      },
+      {
+        "enemyId": "orc",
+        "weight": 10
+      }
+    ]
+  },
+  "zone-005-ruins": {
+    "encounterRate": 0.6,
+    "itemFindRate": 0.15,
+    "findableItems": [
+      {
+        "itemId": "iron-ore",
+        "quantity": 1
+      }
+    ],
+    "enemies": [
+      {
+        "enemyId": "skeleton",
+        "weight": 50
+      },
+      {
+        "enemyId": "mummy",
+        "weight": 35
+      },
+      {
+        "enemyId": "golem",
+        "weight": 15
+      }
+    ]
+  }
+}

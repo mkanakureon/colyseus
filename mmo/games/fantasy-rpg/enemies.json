@@ -1,0 +1,104 @@
+{
+  "goblin": {
+    "id": "goblin",
+    "name": "ゴブリン",
+    "hp": 40,
+    "atk": 7,
+    "def": 3,
+    "exp": 10,
+    "gold": 5,
+    "drops": [
+      {
+        "itemId": "herb-001",
+        "chance": 0.5
+      },
+      {
+        "itemId": "goblin-fang",
+        "chance": 0.2
+      }
+    ]
+  },
+  "bat": {
+    "id": "bat",
+    "name": "大コウモリ",
+    "hp": 25,
+    "atk": 10,
+    "def": 2,
+    "exp": 8,
+    "gold": 3,
+    "drops": [
+      {
+        "itemId": "bat-wing",
+        "chance": 0.4
+      }
+    ]
+  },
+  "orc": {
+    "id": "orc",
+    "name": "オーク",
+    "hp": 80,
+    "atk": 12,
+    "def": 8,
+    "exp": 30,
+    "gold": 20,
+    "drops": [
+      {
+        "itemId": "iron-ore",
+        "chance": 0.4
+      },
+      {
+        "itemId": "orc-axe",
+        "chance": 0.05
+      }
+    ]
+  },
+  "skeleton": {
+    "id": "skeleton",
+    "name": "スケルトン",
+    "hp": 60,
+    "atk": 9,
+    "def": 6,
+    "exp": 15,
+    "gold": 8,
+    "drops": [
+      {
+        "itemId": "bone",
+        "chance": 0.5
+      }
+    ]
+  },
+  "mummy": {
+    "id": "mummy",
+    "name": "ミイラ",
+    "hp": 70,
+    "atk": 11,
+    "def": 5,
+    "exp": 20,
+    "gold": 12,
+    "drops": [
+      {
+        "itemId": "bandage",
+        "chance": 0.3
+      }
+    ]
+  },
+  "golem": {
+    "id": "golem",
+    "name": "ゴーレム",
+    "hp": 120,
+    "atk": 15,
+    "def": 15,
+    "exp": 50,
+    "gold": 30,
+    "drops": [
+      {
+        "itemId": "iron-ore",
+        "chance": 0.6
+      },
+      {
+        "itemId": "golem-core",
+        "chance": 0.1
+      }
+    ]
+  }
+}
