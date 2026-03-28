@@ -1,3 +1,7 @@
+> **このリポジトリは [colyseus/colyseus](https://github.com/colyseus/colyseus) のフォークです。[kaedevn](https://github.com/mkanakureon) プロジェクト（ビジュアルノベル / RPG エンジン）のマルチプレイヤー基盤検証・AI ドキュメント生成に使用しています。詳細は[下記](#このフォークについて)を参照。**
+
+---
+
 <div align="center">
   <a href="https://github.com/colyseus/colyseus">
     <img src="media/logo.svg?raw=true" width="60%" height="300" />
