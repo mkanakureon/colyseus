@@ -450,7 +450,7 @@ function setupHandlers() {
   });
 
   worldRoom.onMessage("npc_dialogue", d => {
-    dialogueData = { npcName: d.npcName, label: "", source: "legacy", nodes: [{ id:"n0", speaker: d.npcName, text: d.text, emotion:"neutral" }], memory: null };
+    dialogueData = { npcId: d.npcId, npcName: d.npcName, label: "", source: "legacy", nodes: [{ id:"n0", speaker: d.npcName, text: d.text, emotion:"neutral" }], memory: null };
     dialogueIdx = 0; screen = "dialogue"; render();
   });
 
