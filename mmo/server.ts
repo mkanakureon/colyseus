@@ -29,7 +29,8 @@ const contentTypes: Record<string, string> = {
 };
 
 const httpServer = http.createServer((req, res) => {
-  let filePath = req.url === "/" ? "/index.html" : req.url || "/index.html";
+  const rawUrl = (req.url || "/").split("?")[0]; // strip query params
+  let filePath = rawUrl === "/" ? "/index.html" : rawUrl;
   const fullPath = path.join(CLIENT_DIR, filePath);
   const ext = path.extname(fullPath);
 
