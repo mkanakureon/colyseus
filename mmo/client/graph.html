@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Graph</title>
+  <title>Game Map</title>
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,375 +11,306 @@
     #app { display: flex; height: 100vh; }
     #cy { flex: 1; }
     #sidebar {
-      width: 320px; background: #161b22; border-left: 1px solid #30363d;
+      width: 300px; background: #161b22; border-left: 1px solid #30363d;
       padding: 16px; overflow-y: auto; font-size: 13px;
     }
     #sidebar h2 { color: #58a6ff; font-size: 14px; margin: 12px 0 4px; }
     #sidebar h2:first-child { margin-top: 0; }
-    #sidebar .item { padding: 2px 0; }
-    #sidebar .dim { color: #6e7681; }
-    #sidebar .green { color: #3fb950; }
-    #sidebar .gold { color: #d29922; }
-    #sidebar .red { color: #f85149; }
-    #sidebar .purple { color: #d2a8ff; }
-    #tabs { display: flex; gap: 4px; margin-bottom: 12px; }
-    #tabs button {
-      background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
-      padding: 6px 12px; cursor: pointer; font-family: inherit; font-size: 12px;
-      border-radius: 4px;
-    }
-    #tabs button.active { background: #388bfd30; border-color: #58a6ff; color: #58a6ff; }
-    #legend { margin-top: 16px; font-size: 11px; }
-    #legend div { padding: 2px 0; }
-    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .dim { color: #6e7681; }
+    .green { color: #3fb950; }
+    .gold { color: #d29922; }
+    .red { color: #f85149; }
+    .purple { color: #d2a8ff; }
+    .blue { color: #58a6ff; }
+    #legend { margin-top: 16px; font-size: 11px; line-height: 1.8; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    a.back { color: #6e7681; text-decoration: none; font-size: 12px; }
+    a.back:hover { color: #c9d1d9; }
   </style>
 </head>
 <body>
   <div id="app">
     <div id="cy"></div>
     <div id="sidebar">
-      <div id="tabs">
-        <button class="active" onclick="showView('world')">World</button>
-        <button onclick="showView('quests')">Quests</button>
-        <button onclick="showView('economy')">Economy</button>
+      <a class="back" href="/">← Game</a>
+      <h2>Game Map</h2>
+      <div id="detail" class="dim">ノードをクリック</div>
+      <div id="legend">
+        <h2>Legend</h2>
+        <div><span class="dot" style="background:#388bfd"></span>Safe Zone</div>
+        <div><span class="dot" style="background:#f85149"></span>Danger Zone</div>
+        <div><span class="dot" style="background:#d2a8ff"></span>NPC</div>
+        <div><span class="dot" style="background:#d29922"></span>NPC (Shop)</div>
+        <div><span class="dot" style="background:#3fb950"></span>NPC (Quest)</div>
+        <div><span class="dot" style="background:#58a6ff"></span>Quest</div>
+        <div><span class="dot" style="background:#da3633"></span>Boss</div>
+        <div style="margin-top:8px"><span class="dim">━━</span> Zone link</div>
+        <div><span class="green">→</span> Quest target</div>
       </div>
-      <div id="detail">クリックしてノードを選択</div>
-      <div id="legend"></div>
     </div>
   </div>
 <script>
-const API = `http://${location.hostname}:3001`;
+// Zone grid positions (matching the world map layout)
+const ZONE_POS = {
+  "zone-001-village": { x: 400, y: 600 },
+  "zone-002-forest":  { x: 200, y: 400 },
+  "zone-003-market":  { x: 600, y: 400 },
+  "zone-004-capital": { x: 400, y: 400 },
+  "zone-005-ruins":   { x: 200, y: 600 },
+  "zone-006-cave":    { x: 600, y: 200 },
+  "zone-007-port":    { x: 400, y: 200 },
+  "zone-008-sewer":   { x: 200, y: 200 },
+  "zone-009-volcano": { x: 600, y: 0 },
+  "zone-010-pass":    { x: 400, y: 0 },
+  "zone-011-ice":     { x: 200, y: 0 },
+  "zone-012-temple":  { x: 400, y: -200 },
+};
 
 let cy = null;
 let gameData = null;
-let currentView = "world";
-
-// Load game data from JSON files directly (served by HTTP server)
-async function loadData() {
-  const files = ["game","zones","enemies","encounters","items","equipment","shops","quests","bosses","npc-conversations"];
-  const data = {};
-  for (const f of files) {
-    try {
-      const res = await fetch(`/${f}.json`);
-      if (res.ok) data[f.replace("-","_").replace("npc_conversations","npcConversations")] = await res.json();
-    } catch {}
-  }
-  // Fix key names
-  data.meta = data.game;
-  data.npcConversations = data.npcConversations || data.npc_conversations || {};
-  return data;
-}
-
-// Serve JSON files from games directory — need API endpoint
-// Simpler: embed data inline from game-graph output
-// Actually, let's fetch from server or use inline
 
 async function init() {
-  // Try to load from game JSON files
-  // The server serves from /client/, but we need /games/fantasy-rpg/
-  // Let's use a different approach: the server will serve /api/game-data
-
   try {
     const res = await fetch("/api/game-data");
-    if (res.ok) {
-      gameData = await res.json();
-    }
-  } catch {}
-
-  if (!gameData) {
-    document.getElementById("detail").innerHTML = `<div class="red">Failed to load game data.<br>Server: npx tsx mmo/server.ts</div>`;
+    gameData = await res.json();
+  } catch {
+    document.getElementById("detail").innerHTML = '<div class="red">Failed to load. Run: npx tsx mmo/server.ts</div>';
     return;
   }
-
-  showView("world");
+  buildGraph();
 }
 
-function showView(view) {
-  currentView = view;
-  document.querySelectorAll("#tabs button").forEach(b => b.classList.remove("active"));
-  document.querySelector(`#tabs button[onclick*="${view}"]`).classList.add("active");
-
-  if (view === "world") buildWorldGraph();
-  else if (view === "quests") buildQuestGraph();
-  else if (view === "economy") buildEconomyGraph();
-}
-
-function buildWorldGraph() {
+function buildGraph() {
   const elements = [];
+  const SCALE = 1.5;
 
-  // Zone nodes
+  // ── Zones ──
   for (const zone of gameData.zones) {
+    const pos = ZONE_POS[zone.id] || { x: 0, y: 0 };
     const enc = gameData.encounters?.[zone.id];
-    const enemyCount = enc?.enemies?.length || 0;
+    const enemies = enc ? enc.enemies.map(e => gameData.enemies[e.enemyId]?.name).filter(Boolean).join(", ") : "";
+
     elements.push({
       data: {
-        id: zone.id, label: zone.name,
+        id: zone.id,
+        label: zone.name,
         type: "zone",
         safe: zone.isSafe,
-        npcCount: zone.npcs.length,
-        enemyCount,
         desc: zone.description,
+        enemies,
+        npcCount: zone.npcs.length,
       },
+      position: { x: pos.x * SCALE, y: pos.y * SCALE },
     });
 
-    // NPC nodes
-    for (const npc of zone.npcs) {
-      const roles = [];
-      if (npc.shop) roles.push("SHOP");
-      if ((npc.quests || []).length > 0) roles.push("QUEST");
+    // ── NPCs (positioned near their zone) ──
+    zone.npcs.forEach((npc, i) => {
+      const angle = (i / Math.max(zone.npcs.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      const r = 80;
+      const nx = pos.x * SCALE + Math.cos(angle) * r;
+      const ny = pos.y * SCALE + Math.sin(angle) * r;
+
+      const hasShop = !!npc.shop;
+      const hasQuest = (npc.quests || []).length > 0;
       const pool = gameData.npcConversations?.[npc.id];
-      if (pool) roles.push("POOL");
+      const roles = [];
+      if (hasShop) roles.push("Shop");
+      if (hasQuest) roles.push(`Quest(${npc.quests.length})`);
+      if (pool) roles.push("Pool");
 
       elements.push({
         data: {
           id: npc.id, label: npc.name,
-          type: "npc", roles: roles.join("/"),
-          hasShop: !!npc.shop,
-          hasQuest: (npc.quests || []).length > 0,
-          hasPool: !!pool,
-          zone: zone.id,
+          type: "npc", hasShop, hasQuest, hasPool: !!pool,
+          roles: roles.join(" "),
+          zone: zone.name,
+          shop: npc.shop ? gameData.shops[npc.shop]?.items?.join(", ") : null,
+          questIds: npc.quests || [],
         },
+        position: { x: nx, y: ny },
       });
-      elements.push({ data: { source: zone.id, target: npc.id, type: "has_npc" } });
-    }
 
-    // Edges to adjacent zones
+      // NPC → Zone edge
+      elements.push({ data: { source: zone.id, target: npc.id, type: "has_npc" } });
+    });
+
+    // ── Zone adjacency edges ──
     for (const adj of zone.adjacentZones) {
-      const key = [zone.id, adj.zoneId].sort().join("-");
-      if (!elements.find(e => e.data.id === key)) {
+      const key = [zone.id, adj.zoneId].sort().join("~");
+      if (!elements.find(e => e.data?.id === key)) {
         elements.push({ data: { id: key, source: zone.id, target: adj.zoneId, type: "adjacent" } });
       }
     }
   }
 
-  // Boss nodes
+  // ── Quests ──
+  for (const [qId, quest] of Object.entries(gameData.quests)) {
+    // Find giver NPC position
+    const giverNpc = findNpc(quest.giver);
+    const giverZone = findNpcZone(quest.giver);
+    const giverPos = giverZone ? ZONE_POS[giverZone.id] : { x: 0, y: 0 };
+
+    // Quest node near giver
+    elements.push({
+      data: {
+        id: qId,
+        label: quest.name,
+        type: "quest",
+        desc: quest.description,
+        giver: giverNpc?.name || quest.giver,
+        rewards: `${quest.rewards.exp}EXP ${quest.rewards.gold}G`,
+        objectives: quest.objectives.map(o => `${o.type}: ${o.targetName} x${o.required}`).join("\n"),
+      },
+      position: {
+        x: (giverPos?.x || 0) * SCALE + 150,
+        y: (giverPos?.y || 0) * SCALE + 40,
+      },
+    });
+
+    // Giver NPC → Quest edge
+    elements.push({ data: { source: quest.giver, target: qId, type: "gives_quest" } });
+
+    // Quest → Target zone edges
+    for (const obj of quest.objectives) {
+      if (obj.type === "defeat") {
+        for (const [zId, enc] of Object.entries(gameData.encounters)) {
+          if (enc.enemies?.some(e => e.enemyId === obj.targetId)) {
+            elements.push({ data: { source: qId, target: zId, type: "quest_target", label: `${obj.targetName}x${obj.required}` } });
+          }
+        }
+      }
+      if (obj.type === "visit") {
+        if (gameData.zones.find(z => z.id === obj.targetId)) {
+          elements.push({ data: { source: qId, target: obj.targetId, type: "quest_target", label: "visit" } });
+        }
+      }
+    }
+  }
+
+  // ── Bosses ──
   for (const [id, boss] of Object.entries(gameData.bosses)) {
+    const bossZone = ZONE_POS[boss.zoneId] || { x: 0, y: 0 };
     elements.push({
       data: {
         id: `boss-${id}`, label: boss.name,
-        type: "boss", hp: boss.hp, exp: boss.exp,
-        zone: boss.zoneId,
-        special: boss.specialAttack?.name || "",
+        type: "boss",
+        hp: boss.hp, exp: boss.exp, gold: boss.gold,
+        special: boss.specialAttack ? `${boss.specialAttack.name} (${boss.specialAttack.damage}dmg ${boss.specialAttack.aoe ? "AOE" : ""})` : "",
       },
+      position: { x: bossZone.x * SCALE - 120, y: bossZone.y * SCALE },
     });
     if (gameData.zones.find(z => z.id === boss.zoneId)) {
       elements.push({ data: { source: boss.zoneId, target: `boss-${id}`, type: "has_boss" } });
     }
   }
 
-  renderGraph(elements, "world");
-
-  document.getElementById("legend").innerHTML = `
-    <h2>Legend</h2>
-    <div><span class="dot" style="background:#388bfd"></span>Safe Zone</div>
-    <div><span class="dot" style="background:#f85149"></span>Danger Zone</div>
-    <div><span class="dot" style="background:#d2a8ff"></span>NPC</div>
-    <div><span class="dot" style="background:#d29922"></span>NPC (Shop)</div>
-    <div><span class="dot" style="background:#3fb950"></span>NPC (Quest)</div>
-    <div><span class="dot" style="background:#da3633"></span>Boss</div>
-  `;
-}
-
-function buildQuestGraph() {
-  const elements = [];
-
-  for (const [qId, quest] of Object.entries(gameData.quests)) {
-    // Quest node
-    elements.push({
-      data: {
-        id: qId, label: `${quest.name}\n${quest.rewards.exp}EXP ${quest.rewards.gold}G`,
-        type: "quest",
-        desc: quest.description,
-        exp: quest.rewards.exp,
-        gold: quest.rewards.gold,
-      },
-    });
-
-    // Giver NPC
-    if (!elements.find(e => e.data.id === quest.giver)) {
-      const npc = findNpc(quest.giver);
-      elements.push({ data: { id: quest.giver, label: npc?.name || quest.giver, type: "npc_quest" } });
-    }
-    elements.push({ data: { source: quest.giver, target: qId, type: "gives" } });
-
-    // Objectives
-    for (const obj of quest.objectives) {
-      const objId = `obj-${qId}-${obj.targetId}`;
-      let label = `${obj.targetName} x${obj.required}`;
-      elements.push({ data: { id: objId, label, type: `obj_${obj.type}` } });
-      elements.push({ data: { source: qId, target: objId, type: "requires" } });
-
-      // Link to zone if defeat
-      if (obj.type === "defeat") {
-        for (const [zId, enc] of Object.entries(gameData.encounters)) {
-          if (enc.enemies.some(e => e.enemyId === obj.targetId)) {
-            const zone = gameData.zones.find(z => z.id === zId);
-            const zNodeId = `qz-${zId}`;
-            if (!elements.find(e => e.data.id === zNodeId)) {
-              elements.push({ data: { id: zNodeId, label: zone?.name || zId, type: "zone_ref" } });
-            }
-            elements.push({ data: { source: objId, target: zNodeId, type: "location" } });
-          }
-        }
-      }
-    }
-  }
-
-  renderGraph(elements, "quests");
-
-  document.getElementById("legend").innerHTML = `
-    <h2>Legend</h2>
-    <div><span class="dot" style="background:#58a6ff"></span>Quest</div>
-    <div><span class="dot" style="background:#d2a8ff"></span>NPC (Giver)</div>
-    <div><span class="dot" style="background:#f85149"></span>Objective (Defeat)</div>
-    <div><span class="dot" style="background:#3fb950"></span>Objective (Collect/Visit)</div>
-    <div><span class="dot" style="background:#6e7681"></span>Zone (Location)</div>
-  `;
-}
-
-function buildEconomyGraph() {
-  const elements = [];
-
-  // Player node (center)
-  elements.push({ data: { id: "player", label: `Player\nStart: ${gameData.meta.startGold}G`, type: "player" } });
-
-  // Gold sources
-  for (const [id, enemy] of Object.entries(gameData.enemies)) {
-    elements.push({ data: { id: `src-${id}`, label: `${enemy.name}\n${enemy.gold}G/kill`, type: "source" } });
-    elements.push({ data: { source: `src-${id}`, target: "player", type: "income", label: `${enemy.gold}G` } });
-  }
-  for (const [id, quest] of Object.entries(gameData.quests)) {
-    elements.push({ data: { id: `qrw-${id}`, label: `${quest.name}\n${quest.rewards.gold}G`, type: "quest_reward" } });
-    elements.push({ data: { source: `qrw-${id}`, target: "player", type: "income", label: `${quest.rewards.gold}G` } });
-  }
-
-  // Gold sinks
-  for (const [shopId, shop] of Object.entries(gameData.shops)) {
-    const maxPrice = Math.max(...shop.items.map(itemId => {
-      const item = gameData.items[itemId] || gameData.equipment[itemId];
-      return item?.buyPrice || 0;
-    }));
-    elements.push({ data: { id: `shop-${shopId}`, label: `${shop.npcName}\nmax:${maxPrice}G`, type: "sink" } });
-    elements.push({ data: { source: "player", target: `shop-${shopId}`, type: "expense" } });
-  }
-
-  // Death penalty
-  elements.push({ data: { id: "death", label: `Death\n-${gameData.meta.deathPenaltyRate*100}%`, type: "penalty" } });
-  elements.push({ data: { source: "player", target: "death", type: "expense" } });
-
-  renderGraph(elements, "economy");
-
-  document.getElementById("legend").innerHTML = `
-    <h2>Legend</h2>
-    <div><span class="dot" style="background:#58a6ff"></span>Player</div>
-    <div><span class="dot" style="background:#3fb950"></span>Gold Source (Enemy)</div>
-    <div><span class="dot" style="background:#a371f7"></span>Gold Source (Quest)</div>
-    <div><span class="dot" style="background:#d29922"></span>Gold Sink (Shop)</div>
-    <div><span class="dot" style="background:#f85149"></span>Penalty</div>
-  `;
-}
-
-function renderGraph(elements, layout) {
-  if (cy) cy.destroy();
-
-  const colorMap = {
-    zone: el => el.data("safe") ? "#388bfd" : "#f85149",
-    npc: el => el.data("hasShop") ? "#d29922" : el.data("hasQuest") ? "#3fb950" : "#d2a8ff",
-    boss: () => "#da3633",
-    quest: () => "#58a6ff",
-    npc_quest: () => "#d2a8ff",
-    obj_defeat: () => "#f85149",
-    obj_collect: () => "#3fb950",
-    obj_visit: () => "#3fb950",
-    zone_ref: () => "#6e7681",
-    player: () => "#58a6ff",
-    source: () => "#3fb950",
-    quest_reward: () => "#a371f7",
-    sink: () => "#d29922",
-    penalty: () => "#f85149",
-  };
-
-  const sizeMap = {
-    zone: 50, npc: 25, boss: 40,
-    quest: 40, npc_quest: 30, obj_defeat: 25, obj_collect: 25, obj_visit: 25, zone_ref: 20,
-    player: 60, source: 30, quest_reward: 30, sink: 35, penalty: 30,
-  };
-
+  // ── Render ──
   cy = cytoscape({
     container: document.getElementById("cy"),
     elements,
+    layout: { name: "preset" }, // Use our coordinates
     style: [
-      {
-        selector: "node",
-        style: {
-          "label": "data(label)",
-          "text-wrap": "wrap",
-          "text-valign": "center",
-          "text-halign": "center",
-          "font-size": 10,
-          "color": "#c9d1d9",
-          "text-outline-color": "#0d1117",
-          "text-outline-width": 2,
-          "background-color": el => colorMap[el.data("type")]?.(el) || "#6e7681",
-          "width": el => sizeMap[el.data("type")] || 30,
-          "height": el => sizeMap[el.data("type")] || 30,
-          "border-width": 2,
-          "border-color": "#30363d",
-        },
-      },
-      {
-        selector: "edge",
-        style: {
-          "width": el => el.data("type") === "adjacent" ? 3 : 1,
-          "line-color": el => el.data("type") === "adjacent" ? "#484f58" :
-            el.data("type") === "income" ? "#3fb950" :
-            el.data("type") === "expense" ? "#f85149" : "#30363d",
-          "curve-style": "bezier",
-          "target-arrow-shape": el => ["gives","requires","location","income","expense"].includes(el.data("type")) ? "triangle" : "none",
-          "target-arrow-color": el => el.data("type") === "income" ? "#3fb950" :
-            el.data("type") === "expense" ? "#f85149" : "#484f58",
-          "arrow-scale": 0.8,
-        },
-      },
+      // Zones
+      { selector: 'node[type="zone"]', style: {
+        "shape": "round-rectangle", "width": 100, "height": 40,
+        "background-color": el => el.data("safe") ? "#1a3a5c" : "#5c1a1a",
+        "border-width": 2, "border-color": el => el.data("safe") ? "#388bfd" : "#f85149",
+        "label": "data(label)", "text-valign": "center", "font-size": 11,
+        "color": "#c9d1d9", "text-outline-color": "#0d1117", "text-outline-width": 1,
+      }},
+      // NPCs
+      { selector: 'node[type="npc"]', style: {
+        "shape": "ellipse", "width": 20, "height": 20,
+        "background-color": el => el.data("hasShop") ? "#d29922" : el.data("hasQuest") ? "#3fb950" : "#d2a8ff",
+        "label": "data(label)", "font-size": 9, "text-valign": "top", "text-margin-y": -4,
+        "color": "#8b949e", "text-outline-color": "#0d1117", "text-outline-width": 1,
+      }},
+      // Quests
+      { selector: 'node[type="quest"]', style: {
+        "shape": "diamond", "width": 30, "height": 30,
+        "background-color": "#1a3352", "border-width": 2, "border-color": "#58a6ff",
+        "label": "data(label)", "font-size": 9, "text-valign": "top", "text-margin-y": -4,
+        "color": "#58a6ff", "text-outline-color": "#0d1117", "text-outline-width": 1,
+      }},
+      // Bosses
+      { selector: 'node[type="boss"]', style: {
+        "shape": "star", "width": 35, "height": 35,
+        "background-color": "#5c1a1a", "border-width": 2, "border-color": "#da3633",
+        "label": "data(label)", "font-size": 9, "text-valign": "top", "text-margin-y": -4,
+        "color": "#f85149", "text-outline-color": "#0d1117", "text-outline-width": 1,
+      }},
+      // Zone connections
+      { selector: 'edge[type="adjacent"]', style: {
+        "width": 3, "line-color": "#30363d", "curve-style": "straight",
+      }},
+      // NPC → Zone
+      { selector: 'edge[type="has_npc"]', style: {
+        "width": 1, "line-color": "#21262d", "line-style": "dotted", "curve-style": "straight",
+      }},
+      // Boss → Zone
+      { selector: 'edge[type="has_boss"]', style: {
+        "width": 2, "line-color": "#5c1a1a", "line-style": "dashed", "curve-style": "straight",
+      }},
+      // Quest edges
+      { selector: 'edge[type="gives_quest"]', style: {
+        "width": 1.5, "line-color": "#58a6ff40", "curve-style": "bezier",
+        "target-arrow-shape": "triangle", "target-arrow-color": "#58a6ff40", "arrow-scale": 0.6,
+      }},
+      { selector: 'edge[type="quest_target"]', style: {
+        "width": 2, "line-color": "#3fb95080", "curve-style": "bezier",
+        "target-arrow-shape": "triangle", "target-arrow-color": "#3fb95080", "arrow-scale": 0.8,
+        "label": "data(label)", "font-size": 8, "color": "#3fb950", "text-outline-color": "#0d1117", "text-outline-width": 1,
+      }},
     ],
-    layout: {
-      name: layout === "economy" ? "concentric" : "cose",
-      nodeRepulsion: 8000,
-      idealEdgeLength: 120,
-      padding: 40,
-      animate: false,
-    },
+    minZoom: 0.3, maxZoom: 3,
+    wheelSensitivity: 0.3,
   });
 
   // Click handler
   cy.on("tap", "node", evt => {
     const d = evt.target.data();
-    let html = `<h2>${d.label}</h2>`;
+    let html = "";
+
     if (d.type === "zone") {
+      html = `<h2>${d.label}</h2>`;
       html += `<div>${d.desc}</div>`;
-      html += `<div class="dim">NPCs: ${d.npcCount} | Enemies: ${d.enemyCount}</div>`;
-      html += `<div class="${d.safe ? 'green' : 'red'}">${d.safe ? "Safe" : "Danger"}</div>`;
+      html += `<div class="${d.safe ? 'green' : 'red'}" style="margin-top:4px">${d.safe ? "Safe Zone" : "Danger Zone"}</div>`;
+      if (d.enemies) html += `<div class="dim" style="margin-top:4px">Enemies: ${d.enemies}</div>`;
+      html += `<div class="dim">NPCs: ${d.npcCount}</div>`;
+
     } else if (d.type === "npc") {
-      html += `<div class="dim">${d.roles || "NPC"}</div>`;
-      html += `<div>Zone: ${d.zone}</div>`;
-    } else if (d.type === "boss") {
-      html += `<div class="red">HP:${d.hp} EXP:${d.exp}</div>`;
-      if (d.special) html += `<div>Special: ${d.special}</div>`;
+      html = `<h2 class="purple">${d.label}</h2>`;
+      html += `<div class="dim">${d.zone}</div>`;
+      if (d.roles) html += `<div style="margin-top:4px">${d.roles}</div>`;
+      if (d.shop) html += `<div class="gold" style="margin-top:4px">Shop: ${d.shop}</div>`;
+      if (d.questIds.length) html += `<div class="green" style="margin-top:4px">Quests: ${d.questIds.join(", ")}</div>`;
+
     } else if (d.type === "quest") {
-      html += `<div>${d.desc || ""}</div>`;
-      html += `<div class="green">${d.exp}EXP ${d.gold}G</div>`;
-    } else {
-      html += `<div class="dim">${JSON.stringify(d, null, 2)}</div>`;
+      html = `<h2 class="blue">${d.label}</h2>`;
+      html += `<div class="dim">${d.desc}</div>`;
+      html += `<div style="margin-top:4px">Giver: ${d.giver}</div>`;
+      html += `<div style="white-space:pre">${d.objectives}</div>`;
+      html += `<div class="green" style="margin-top:4px">${d.rewards}</div>`;
+
+    } else if (d.type === "boss") {
+      html = `<h2 class="red">${d.label}</h2>`;
+      html += `<div>HP:${d.hp} EXP:${d.exp} Gold:${d.gold}</div>`;
+      if (d.special) html += `<div class="gold" style="margin-top:4px">${d.special}</div>`;
     }
+
     document.getElementById("detail").innerHTML = html;
   });
+
+  // Fit to view
+  cy.fit(null, 50);
 }
 
 function findNpc(npcId) {
-  for (const zone of gameData.zones) {
-    const npc = zone.npcs.find(n => n.id === npcId);
-    if (npc) return npc;
-  }
+  for (const z of gameData.zones) { const n = z.npcs.find(n => n.id === npcId); if (n) return n; }
+  return null;
+}
+function findNpcZone(npcId) {
+  for (const z of gameData.zones) { if (z.npcs.find(n => n.id === npcId)) return z; }
   return null;
 }
 
