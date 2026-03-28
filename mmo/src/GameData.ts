@@ -212,6 +212,66 @@ export function validateGameData(data: GameData): string[] {
     }
   }
 
+  // ── NPC 整合性チェック ──
+  const npcKeywords = {
+    shop: ["店", "商", "買", "売", "品", "shop", "buy", "売って", "いらっしゃい", "お探し"],
+    quest: ["クエスト", "依頼", "頼み", "退治", "倒して", "集めて", "調査", "ボード", "仕事"],
+    battle: ["戦", "魔物", "危険", "気をつけ", "敵", "モンスター"],
+  };
+
+  for (const zone of data.zones) {
+    for (const npc of zone.npcs) {
+      const allDialogue = (npc.dialogue || []).join(" ");
+
+      // NPC がショップの話をするのに shop 参照がない
+      const talksAboutShop = npcKeywords.shop.some(kw => allDialogue.includes(kw));
+      const hasShop = !!(npc.shop && data.shops[npc.shop]);
+      if (talksAboutShop && !hasShop) {
+        errors.push(`npc ${npc.id} (${npc.name}) in ${zone.id}: dialogue mentions shop but has no shop reference`);
+      }
+
+      // NPC がクエストの話をするのに quests 参照がない
+      const talksAboutQuest = npcKeywords.quest.some(kw => allDialogue.includes(kw));
+      const hasQuests = (npc.quests || []).length > 0;
+      if (talksAboutQuest && !hasQuests) {
+        errors.push(`npc ${npc.id} (${npc.name}) in ${zone.id}: dialogue mentions quests but has no quest references`);
+      }
+
+      // shop 参照があるが shops.json に定義がない
+      if (npc.shop && !data.shops[npc.shop]) {
+        errors.push(`npc ${npc.id} (${npc.name}) in ${zone.id}: shop "${npc.shop}" not found in shops data`);
+      }
+
+      // quests 参照があるが quests.json に定義がない
+      for (const qId of (npc.quests || [])) {
+        if (!data.quests[qId]) {
+          errors.push(`npc ${npc.id} (${npc.name}) in ${zone.id}: quest "${qId}" not found in quests data`);
+        }
+      }
+
+      // dialogue が空
+      if (!npc.dialogue || npc.dialogue.length === 0) {
+        errors.push(`npc ${npc.id} (${npc.name}) in ${zone.id}: has no dialogue`);
+      }
+
+      // 会話プールがある場合、ノードが空でないか
+      const pool = data.npcConversations?.[npc.id];
+      if (pool) {
+        const totalConvs = (pool.daily?.length || 0) + (pool.contextual?.length || 0) + (pool.special?.length || 0);
+        if (totalConvs === 0) {
+          errors.push(`npc ${npc.id} (${npc.name}): conversation pool exists but is empty`);
+        }
+        for (const conv of [...(pool.daily || []), ...(pool.contextual || []), ...(pool.special || [])]) {
+          if (!conv.nodes || conv.nodes.length === 0) {
+            errors.push(`npc ${npc.id} (${npc.name}): conversation "${conv.id}" has no nodes`);
+          }
+        }
+      }
+
+      // 危険ゾーンの NPC は isSafe=false のゾーンにいる（warning level、error ではない）
+    }
+  }
+
   return errors;
 }
 

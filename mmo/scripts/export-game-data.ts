@@ -154,4 +154,17 @@ for (const [id, b] of Object.entries(BOSSES)) {
 }
 write("bosses.json", bosses);
 
-console.log(`\nDone! ${fs.readdirSync(outDir).length} files exported.\n`);
+console.log(`\nExported ${fs.readdirSync(outDir).length} files.`);
+
+// Validate
+import { loadGameData, validateGameData } from "../src/GameData.ts";
+const gameData = loadGameData(outDir);
+const errors = validateGameData(gameData);
+if (errors.length === 0) {
+  console.log("✓ Validation passed: no errors.\n");
+} else {
+  console.log(`\n✗ Validation found ${errors.length} error(s):\n`);
+  errors.forEach(e => console.log(`  - ${e}`));
+  console.log("");
+  process.exit(1);
+}
