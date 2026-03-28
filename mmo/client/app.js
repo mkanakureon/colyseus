@@ -372,6 +372,7 @@ async function connect() {
   try {
     client = new Colyseus.Client(ENDPOINT);
     const userId = "browser-" + Math.random().toString(36).slice(2,8);
+    player._token = userId;  // save for rejoin
 
     worldRoom = await client.joinOrCreate("world", {
       token: userId,

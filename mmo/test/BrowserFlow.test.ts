@@ -204,12 +204,14 @@ describe("Browser Client Flow", function () {
 
   // ── ゾーン移動後の再接続フロー ──
 
-  it("BF-09: should rejoin new zone room after zone change", async () => {
+  it("BF-09: should rejoin new zone room after zone change (browser token)", async () => {
     const sdk = new SDKClient(ENDPOINT);
+    // Browser uses same token string for all joins (not JWT)
+    const browserToken = "browser-bf09";
 
     // Join village
     const room1 = await sdk.joinOrCreate("world", {
-      token: createTestToken({ userId: "bf-09" }),
+      token: browserToken,
       zoneId: "zone-001-village",
       zoneName: "はじまりの村",
     });
@@ -221,10 +223,10 @@ describe("Browser Client Flow", function () {
     const zc = await zoneChange;
     assert.strictEqual(zc.zoneId, "zone-004-capital");
 
-    // Leave old room, join new zone
+    // Leave old room, join new zone WITH SAME TOKEN
     await room1.leave();
     const room2 = await sdk.joinOrCreate("world", {
-      token: createTestToken({ userId: "bf-09" }),
+      token: browserToken,  // same token reused
       zoneId: "zone-004-capital",
       zoneName: "王都セレス",
     });
@@ -241,7 +243,30 @@ describe("Browser Client Flow", function () {
     const result = await zc2;
     assert.strictEqual(result.zoneId, "zone-001-village");
 
+    // Leave and rejoin village again
     await room2.leave();
+    const room3 = await sdk.joinOrCreate("world", {
+      token: browserToken,
+      zoneId: "zone-001-village",
+      zoneName: "はじまりの村",
+    });
+    await new Promise(r => setTimeout(r, 300));
+
+    // Village should have NPCs
+    let villageNpcCount = 0;
+    room3.state.npcs.forEach(() => villageNpcCount++);
+    assert.ok(villageNpcCount >= 2, `Village should have NPCs after return, got ${villageNpcCount}`);
+
+    // NPC interact should work after rejoin
+    const npcResp = new Promise<any>((resolve) => {
+      room3.onMessage("npc_dialogue", resolve);
+      room3.onMessage("npc_conversation", resolve);
+    });
+    room3.send("interact", { targetId: "npc-elder" });
+    const npcResult = await npcResp;
+    assert.strictEqual(npcResult.npcName, "長老ヨハン");
+
+    await room3.leave();
   });
 
   it("BF-10: dev token (browser-*) should authenticate", async () => {
